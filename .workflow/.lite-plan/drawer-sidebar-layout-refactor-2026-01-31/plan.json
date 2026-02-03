@@ -1,0 +1,520 @@
+{
+  "summary": "Implement drawer-style upload area and sidebar settings layout refactor based on UX design specs. This involves creating 3 new components (UploadStatusBar, UploadDrawer, Sidebar), restructuring App.tsx layout from 3-column grid to sidebar+main flex layout, optimizing preview area, and adding responsive breakpoints with keyboard shortcuts.",
+  "approach": "Phase-based implementation: (1) Create new UI components with Tailwind CSS animations, (2) Refactor App.tsx layout structure and state management, (3) Optimize preview area for maximized display, (4) Add responsive adaptations and interaction enhancements. All animations use pure Tailwind CSS transitions without external libraries.",
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Create Upload Components (UploadStatusBar + UploadDrawer)",
+      "scope": "src/components/",
+      "action": "Create",
+      "description": "Create UploadStatusBar.tsx (compact status display with 6 states, thumbnails, click-to-expand) and UploadDrawer.tsx (top slide-out modal with two drag zones, overlay, ESC close, focus management).",
+      "modification_points": [
+        {
+          "file": "src/components/UploadStatusBar.tsx",
+          "target": "new file",
+          "change": "Create component with 6 states (empty/partial-original/partial-annotated/complete/uploading/error), thumbnail display, drag activation"
+        },
+        {
+          "file": "src/components/UploadDrawer.tsx",
+          "target": "new file",
+          "change": "Create drawer component with slide animation (300ms ease-out), overlay (200ms ease), two drag zones, smart file assignment, ESC key handler"
+        }
+      ],
+      "implementation": [
+        "Create UploadStatusBar.tsx with props interface (originalFile, annotatedFile, onOpenDrawer, onClear)",
+        "Implement 6 state displays with conditional rendering and Tailwind classes",
+        "Create UploadDrawer.tsx with isOpen state controlling visibility",
+        "Implement slide animation using translateY transform with Tailwind transition classes",
+        "Add overlay with click-to-close and body scroll lock (overflow-hidden on body)",
+        "Implement ESC key listener with useEffect cleanup",
+        "Reuse drag-drop pattern from existing ImageUploader.tsx"
+      ],
+      "reference": {
+        "pattern": "Drag-drop pattern, Modal/overlay pattern",
+        "files": ["src/components/ImageUploader.tsx", "src/components/ImagePreview.tsx"],
+        "examples": "Follow existing drag-drop implementation (lines 36-66 in ImageUploader), modal pattern from ImagePreview zoom"
+      },
+      "acceptance": [
+        "UploadStatusBar displays correct state based on file presence",
+        "UploadDrawer slides from top with 300ms animation",
+        "ESC key closes drawer, overlay click closes drawer",
+        "Drag-drop works in both drawer zones"
+      ],
+      "depends_on": [],
+      "cli_execution_id": "drawer-sidebar-layout-refactor-2026-01-31-T1",
+      "cli_execution": {
+        "strategy": "new"
+      },
+      "rationale": {
+        "chosen_approach": "Create two separate component files for upload status bar and drawer, following single-responsibility principle",
+        "alternatives_considered": ["Extend existing ImageUploader", "Single combined component"],
+        "decision_factors": ["User clarification specified 3 new files", "Cleaner separation of concerns", "Easier testing"],
+        "tradeoffs": "More files to maintain, but better modularity"
+      },
+      "verification": {
+        "unit_tests": [],
+        "integration_tests": [],
+        "manual_checks": [
+          "Verify all 6 status bar states render correctly",
+          "Test drawer open/close animation smoothness",
+          "Verify ESC key and overlay click close drawer",
+          "Test drag-drop in both zones"
+        ],
+        "success_metrics": ["Animation duration matches spec (300ms drawer, 200ms overlay)", "No layout shift during animation"]
+      },
+      "risks": [
+        {
+          "description": "Focus trap implementation complexity",
+          "probability": "Medium",
+          "impact": "Low",
+          "mitigation": "Use simple focus management with useRef, skip full focus trap for MVP",
+          "fallback": "Add focus-trap-react package if needed"
+        }
+      ],
+      "code_skeleton": {
+        "interfaces": [
+          {
+            "name": "UploadStatusBarProps",
+            "definition": "{ originalFile: File | null; annotatedFile: File | null; onOpenDrawer: () => void; onClear: () => void; }",
+            "purpose": "Props for status bar component"
+          },
+          {
+            "name": "UploadDrawerProps",
+            "definition": "{ isOpen: boolean; onClose: () => void; originalFile: File | null; annotatedFile: File | null; onOriginalSelect: (file: File) => void; onAnnotatedSelect: (file: File) => void; }",
+            "purpose": "Props for drawer component"
+          }
+        ],
+        "key_functions": [
+          {
+            "signature": "getUploadStatus(original: File | null, annotated: File | null): UploadStatus",
+            "purpose": "Determine current upload status from file state",
+            "returns": "'empty' | 'partial-original' | 'partial-annotated' | 'complete'"
+          }
+        ]
+      }
+    },
+    {
+      "id": "T2",
+      "title": "Create Sidebar Component",
+      "scope": "src/components/",
+      "action": "Create",
+      "description": "Create Sidebar.tsx component with collapsible design (280px expanded, 48px collapsed), preset selection, advanced settings, download button, and localStorage persistence for collapsed state and preset selection.",
+      "modification_points": [
+        {
+          "file": "src/components/Sidebar.tsx",
+          "target": "new file",
+          "change": "Create sidebar component with collapse animation (250ms ease-out), preset buttons, slider controls, toggle switches, action buttons"
+        }
+      ],
+      "implementation": [
+        "Create Sidebar.tsx with props interface extending ProcessingPanel props",
+        "Implement collapse/expand with width transition (280px to 48px)",
+        "Port preset selection UI from ProcessingPanel.tsx",
+        "Port advanced settings section with collapsible behavior",
+        "Add localStorage persistence for collapsed state and selectedPreset",
+        "Implement collapsed icon bar with tooltips",
+        "Add Ctrl+B keyboard shortcut for toggle"
+      ],
+      "reference": {
+        "pattern": "Collapsible section pattern, Preset selection pattern",
+        "files": ["src/components/ProcessingPanel.tsx"],
+        "examples": "Follow existing collapsible pattern (lines 101-123 in ProcessingPanel), preset selection (lines 79-99)"
+      },
+      "acceptance": [
+        "Sidebar collapses to 48px with smooth 250ms animation",
+        "Preset selection works and persists to localStorage",
+        "Advanced settings section expands/collapses correctly",
+        "Ctrl+B toggles sidebar collapse state"
+      ],
+      "depends_on": [],
+      "cli_execution_id": "drawer-sidebar-layout-refactor-2026-01-31-T2",
+      "cli_execution": {
+        "strategy": "new"
+      },
+      "rationale": {
+        "chosen_approach": "Create new Sidebar component rather than refactoring ProcessingPanel, to preserve backward compatibility",
+        "alternatives_considered": ["Refactor ProcessingPanel in-place", "Extend ProcessingPanel"],
+        "decision_factors": ["ProcessingPanel may still be used in batch mode", "Cleaner implementation", "Easier rollback if needed"],
+        "tradeoffs": "Some code duplication with ProcessingPanel, but safer migration path"
+      },
+      "verification": {
+        "unit_tests": [],
+        "integration_tests": [],
+        "manual_checks": [
+          "Verify collapse animation is smooth (250ms)",
+          "Test localStorage persistence across page reloads",
+          "Verify Ctrl+B shortcut works",
+          "Test all slider and toggle controls"
+        ],
+        "success_metrics": ["Collapsed state persists across sessions", "Animation duration matches spec (250ms)"]
+      },
+      "risks": [
+        {
+          "description": "localStorage state conflicts with existing app state",
+          "probability": "Low",
+          "impact": "Medium",
+          "mitigation": "Use namespaced localStorage key (sidebar-state), initialize from localStorage on mount"
+        }
+      ],
+      "code_skeleton": {
+        "interfaces": [
+          {
+            "name": "SidebarProps",
+            "definition": "{ options: ProcessingOptions; onChange: (options: ProcessingOptions) => void; onDownload: () => void; canDownload: boolean; isProcessing: boolean; collapsed: boolean; onCollapsedChange: (collapsed: boolean) => void; selectedPreset: string | null; onPresetChange: (preset: string | null) => void; }",
+            "purpose": "Props for sidebar component"
+          }
+        ],
+        "key_functions": [
+          {
+            "signature": "useSidebarPersistence(collapsed: boolean, selectedPreset: string | null): void",
+            "purpose": "Persist sidebar state to localStorage",
+            "returns": "void"
+          }
+        ]
+      }
+    },
+    {
+      "id": "T3",
+      "title": "Refactor App.tsx Layout and State Management",
+      "scope": "src/App.tsx",
+      "action": "Refactor",
+      "description": "Restructure App.tsx from 3-column grid layout to sidebar+main flex layout. Add new state variables (isDrawerOpen, sidebarCollapsed), integrate new components, and update single-mode rendering logic.",
+      "modification_points": [
+        {
+          "file": "src/App.tsx",
+          "target": "lines 29-46 state declarations",
+          "change": "Add isDrawerOpen, sidebarCollapsed state variables"
+        },
+        {
+          "file": "src/App.tsx",
+          "target": "lines 237-382 single mode layout",
+          "change": "Replace grid-cols-3 with flex layout: UploadStatusBar + (Sidebar + PreviewArea)"
+        },
+        {
+          "file": "src/App.tsx",
+          "target": "lines 55-94 paste handler",
+          "change": "Update paste handler to work with drawer state"
+        }
+      ],
+      "implementation": [
+        "Add new state: const [isDrawerOpen, setIsDrawerOpen] = useState(false)",
+        "Add new state: const [sidebarCollapsed, setSidebarCollapsed] = useState(false)",
+        "Import new components: UploadStatusBar, UploadDrawer, Sidebar",
+        "Replace single-mode grid layout with flex structure",
+        "Add UploadStatusBar below header with onOpenDrawer callback",
+        "Add UploadDrawer with isOpen controlled by isDrawerOpen state",
+        "Replace ProcessingPanel with Sidebar in single mode",
+        "Update paste handler to consider drawer open state"
+      ],
+      "reference": {
+        "pattern": "React state management, Flex layout",
+        "files": ["src/App.tsx"],
+        "examples": "Follow existing state patterns in App.tsx, use flex-1 for main content area"
+      },
+      "acceptance": [
+        "Single mode renders with new sidebar+main layout",
+        "UploadStatusBar visible below header",
+        "Clicking status bar opens drawer",
+        "Sidebar displays and controls work correctly",
+        "Batch mode remains unchanged"
+      ],
+      "depends_on": ["T1", "T2"],
+      "cli_execution_id": "drawer-sidebar-layout-refactor-2026-01-31-T3",
+      "cli_execution": {
+        "strategy": "merge_fork",
+        "merge_from": ["drawer-sidebar-layout-refactor-2026-01-31-T1", "drawer-sidebar-layout-refactor-2026-01-31-T2"]
+      },
+      "rationale": {
+        "chosen_approach": "Refactor layout in-place rather than creating new App component",
+        "alternatives_considered": ["Create AppV2 component", "Gradual migration with feature flag"],
+        "decision_factors": ["Single source of truth", "Simpler deployment", "Batch mode isolation"],
+        "tradeoffs": "Larger single commit, but cleaner final state"
+      },
+      "verification": {
+        "unit_tests": [],
+        "integration_tests": [],
+        "manual_checks": [
+          "Verify single mode layout matches design spec",
+          "Test drawer open/close from status bar",
+          "Verify sidebar controls update preview",
+          "Confirm batch mode still works unchanged"
+        ],
+        "success_metrics": ["No regression in existing functionality", "Layout matches design mockup"]
+      },
+      "risks": [
+        {
+          "description": "Breaking existing paste functionality",
+          "probability": "Medium",
+          "impact": "Medium",
+          "mitigation": "Test paste handler thoroughly, preserve existing logic path"
+        },
+        {
+          "description": "State synchronization issues between components",
+          "probability": "Medium",
+          "impact": "Medium",
+          "mitigation": "Keep state in App.tsx, pass callbacks to children"
+        }
+      ]
+    },
+    {
+      "id": "T4",
+      "title": "Optimize Preview Area and ImagePreview Component",
+      "scope": "src/components/",
+      "action": "Update",
+      "description": "Optimize ImagePreview.tsx for maximized display (remove max-h-80 constraint), update preview area container in App.tsx for full-height rendering, and adjust comparison view layout.",
+      "modification_points": [
+        {
+          "file": "src/components/ImagePreview.tsx",
+          "target": "image container styles",
+          "change": "Change max-h-80 to max-h-[60vh] or flex-based sizing"
+        },
+        {
+          "file": "src/App.tsx",
+          "target": "preview area container",
+          "change": "Update preview container to use flex-1 and fill available space"
+        }
+      ],
+      "implementation": [
+        "Update ImagePreview.tsx image container from max-h-80 to responsive sizing",
+        "Add flex-1 to preview area container in App.tsx",
+        "Ensure simple view centers image in available space",
+        "Verify comparison view 2x2 grid scales appropriately",
+        "Test zoom modal still works correctly"
+      ],
+      "reference": {
+        "pattern": "Responsive image sizing",
+        "files": ["src/components/ImagePreview.tsx"],
+        "examples": "Use max-h-[60vh] or calc() for dynamic height"
+      },
+      "acceptance": [
+        "Preview image uses maximum available vertical space",
+        "No scrolling needed to see full preview",
+        "Comparison view displays all 4 images without overflow",
+        "Zoom modal still functions correctly"
+      ],
+      "depends_on": [],
+      "cli_execution_id": "drawer-sidebar-layout-refactor-2026-01-31-T4",
+      "cli_execution": {
+        "strategy": "new"
+      },
+      "rationale": {
+        "chosen_approach": "Modify existing ImagePreview rather than creating new component",
+        "alternatives_considered": ["Create PreviewArea wrapper component", "CSS-only changes"],
+        "decision_factors": ["Minimal changes needed", "Preserve existing functionality", "Reuse in both modes"],
+        "tradeoffs": "May affect batch mode preview sizing, need to verify"
+      },
+      "verification": {
+        "unit_tests": [],
+        "integration_tests": [],
+        "manual_checks": [
+          "Verify preview fills available space",
+          "Test at different viewport heights",
+          "Verify comparison view layout",
+          "Test zoom modal functionality"
+        ],
+        "success_metrics": ["Preview area utilizes >80% of available height", "No vertical scrolling in normal use"]
+      }
+    },
+    {
+      "id": "T5",
+      "title": "Add Responsive Breakpoints and Keyboard Shortcuts",
+      "scope": "src/",
+      "action": "Implement",
+      "description": "Implement responsive breakpoints (>=1024px fixed sidebar, 768-1023px overlay sidebar, <768px bottom drawer), add keyboard shortcuts (Ctrl+S download, Space toggle view, Escape close), and ensure smooth transitions.",
+      "modification_points": [
+        {
+          "file": "src/App.tsx",
+          "target": "responsive logic",
+          "change": "Add useEffect for window resize listener, implement breakpoint-based sidebar behavior"
+        },
+        {
+          "file": "src/App.tsx",
+          "target": "keyboard handlers",
+          "change": "Add global keydown listener for Ctrl+S, Space, Escape shortcuts"
+        },
+        {
+          "file": "src/components/Sidebar.tsx",
+          "target": "responsive styles",
+          "change": "Add responsive classes for overlay mode at medium screens"
+        }
+      ],
+      "implementation": [
+        "Create useBreakpoint hook or inline resize listener in App.tsx",
+        "Implement auto-collapse logic: <1024px triggers sidebar collapse",
+        "Add overlay mode for sidebar at 768-1023px (position absolute, z-index)",
+        "Add global keydown listener for shortcuts",
+        "Implement Ctrl+S for download (when preview available)",
+        "Implement Space for toggle comparison view",
+        "Implement Escape for close drawer/modal",
+        "Add Tailwind responsive classes (lg:, md:, sm:) where needed"
+      ],
+      "reference": {
+        "pattern": "Responsive design, Keyboard event handling",
+        "files": ["src/App.tsx"],
+        "examples": "Follow existing ESC handler pattern, use window.matchMedia for breakpoints"
+      },
+      "acceptance": [
+        "Sidebar auto-collapses below 1024px viewport width",
+        "Sidebar shows as overlay at 768-1023px",
+        "Ctrl+S triggers download when preview available",
+        "Space toggles comparison view",
+        "Escape closes open drawer or modal"
+      ],
+      "depends_on": ["T3"],
+      "cli_execution_id": "drawer-sidebar-layout-refactor-2026-01-31-T5",
+      "cli_execution": {
+        "strategy": "resume",
+        "resume_from": "drawer-sidebar-layout-refactor-2026-01-31-T3"
+      },
+      "rationale": {
+        "chosen_approach": "Implement responsive logic in App.tsx with CSS classes, avoid separate mobile components",
+        "alternatives_considered": ["Create separate mobile layout", "Use CSS-only media queries"],
+        "decision_factors": ["Need JS for auto-collapse behavior", "Simpler maintenance", "Consistent state management"],
+        "tradeoffs": "More JS logic, but better control over responsive behavior"
+      },
+      "verification": {
+        "unit_tests": [],
+        "integration_tests": [],
+        "manual_checks": [
+          "Test at 1280px, 1024px, 768px, 640px viewport widths",
+          "Verify sidebar behavior at each breakpoint",
+          "Test all keyboard shortcuts",
+          "Verify shortcuts don't conflict with browser defaults"
+        ],
+        "success_metrics": ["Responsive transitions are smooth", "All shortcuts work as specified"]
+      },
+      "risks": [
+        {
+          "description": "Keyboard shortcuts conflict with browser or OS shortcuts",
+          "probability": "Low",
+          "impact": "Low",
+          "mitigation": "Use Ctrl+S with preventDefault, test across browsers"
+        },
+        {
+          "description": "Resize listener performance impact",
+          "probability": "Low",
+          "impact": "Low",
+          "mitigation": "Debounce resize handler, use matchMedia for efficiency"
+        }
+      ]
+    }
+  ],
+  "data_flow": {
+    "diagram": "User Action -> App.tsx State -> Component Props -> UI Update -> Preview Generation",
+    "stages": [
+      {
+        "stage": "File Upload",
+        "input": "File from drag-drop or file picker",
+        "output": "File object in App.tsx state",
+        "component": "UploadDrawer -> App.tsx",
+        "transformations": ["File validation", "State update", "Thumbnail generation"]
+      },
+      {
+        "stage": "Settings Change",
+        "input": "User interaction with Sidebar controls",
+        "output": "ProcessingOptions update",
+        "component": "Sidebar -> App.tsx",
+        "transformations": ["Option validation", "Debounced state update", "Auto-preview trigger"]
+      },
+      {
+        "stage": "Preview Generation",
+        "input": "originalFile + annotatedFile + options",
+        "output": "ProcessedResult with preview images",
+        "component": "App.tsx -> imageProcessor.ts",
+        "transformations": ["Image loading", "Pixel processing", "Result caching"]
+      },
+      {
+        "stage": "UI Render",
+        "input": "App.tsx state",
+        "output": "Rendered components",
+        "component": "App.tsx -> All components",
+        "transformations": ["Props distribution", "Conditional rendering", "Animation triggers"]
+      }
+    ],
+    "dependencies": ["React 19.0.0", "Tailwind CSS 4.0.0", "localStorage API"]
+  },
+  "design_decisions": [
+    {
+      "decision": "Create 3 new component files instead of refactoring existing",
+      "rationale": "User explicitly requested 3 new files; cleaner separation of concerns; easier testing and maintenance",
+      "tradeoff": "Some code duplication with existing components",
+      "alternatives": ["Refactor ProcessingPanel to Sidebar", "Extend ImageUploader for status bar"]
+    },
+    {
+      "decision": "Manual drawer close (click Done button) instead of auto-close",
+      "rationale": "User preference for explicit control over upload completion",
+      "tradeoff": "Extra click required, but more predictable behavior",
+      "alternatives": ["Auto-close after 500ms delay", "User preference in settings"]
+    },
+    {
+      "decision": "Pure Tailwind CSS transitions without animation library",
+      "rationale": "User requirement for zero additional dependencies; Tailwind 4.0 handles all needed animations",
+      "tradeoff": "Less sophisticated physics-based animations, but simpler implementation",
+      "alternatives": ["framer-motion (~30KB)", "@formkit/auto-animate (~2KB)"]
+    },
+    {
+      "decision": "Partial state persistence (collapsed + preset only)",
+      "rationale": "User clarification to only save collapsed state and preset selection; balance between UX and simplicity",
+      "tradeoff": "Custom options reset on page load",
+      "alternatives": ["Full state persistence", "No persistence"]
+    },
+    {
+      "decision": "Keep batch mode unchanged",
+      "rationale": "Scope control; backward compatibility; batch mode has different upload patterns",
+      "tradeoff": "Inconsistent UX between modes",
+      "alternatives": ["Adapt drawer+sidebar for both modes", "Deprecate batch mode"]
+    }
+  ],
+  "flow_control": {
+    "execution_order": [
+      {
+        "phase": "parallel-1",
+        "tasks": ["T1", "T2", "T4"],
+        "type": "parallel"
+      },
+      {
+        "phase": "sequential-2",
+        "tasks": ["T3"],
+        "type": "sequential"
+      },
+      {
+        "phase": "sequential-3",
+        "tasks": ["T5"],
+        "type": "sequential"
+      }
+    ],
+    "exit_conditions": {
+      "success": "All 5 tasks completed, layout matches design spec, no regression in batch mode",
+      "failure": "Critical task fails or batch mode regression detected"
+    }
+  },
+  "focus_paths": [
+    "src/components/UploadStatusBar.tsx",
+    "src/components/UploadDrawer.tsx",
+    "src/components/Sidebar.tsx",
+    "src/App.tsx",
+    "src/components/ImagePreview.tsx"
+  ],
+  "estimated_time": "4-6 hours",
+  "recommended_execution": "Codex",
+  "complexity": "High",
+  "_metadata": {
+    "timestamp": "2026-01-31T12:00:00.000Z",
+    "source": "cli-lite-planning-agent",
+    "planning_mode": "agent-based",
+    "exploration_angles": ["patterns", "integration-points", "dependencies", "architecture"],
+    "duration_seconds": 180,
+    "quality_check": {
+      "executed": true,
+      "result": "PASS",
+      "dimensions": {
+        "completeness": "All design spec requirements covered in 5 tasks",
+        "granularity": "Tasks sized at 30-90 minutes each",
+        "dependencies": "Correct ordering: T1,T2,T4 parallel -> T3 -> T5",
+        "acceptance_criteria": "All quantified and testable",
+        "implementation_steps": "3-8 steps per task",
+        "constraint_compliance": "Follows user clarifications and project guidelines"
+      }
+    }
+  }
+}

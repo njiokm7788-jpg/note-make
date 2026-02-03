@@ -1,0 +1,168 @@
+{
+  "summary": "将上传区域从占用布局空间的 UploadStatusBar 改为右下角悬浮按钮，点击后弹出居中模态弹窗。保持全局拖拽和粘贴上传功能。",
+  "approach": "创建新的 FloatingUploadButton 组件作为悬浮触发器，新建 UploadModal 居中弹窗组件复用 UploadDrawer 内部的上传逻辑，修改 App.tsx 替换原有 UploadStatusBar 并集成新组件。",
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Create FloatingUploadButton component",
+      "scope": "src/components/",
+      "action": "Create",
+      "description": "创建右下角悬浮上传按钮组件，显示上传图标和状态徽章（绿=就绪/黄=部分/灰=空）",
+      "modification_points": [
+        {
+          "file": "src/components/FloatingUploadButton.tsx",
+          "target": "new file",
+          "change": "创建悬浮按钮组件，包含图标、状态徽章、点击回调"
+        }
+      ],
+      "implementation": [
+        "创建 FloatingUploadButtonProps 接口：originalFile, annotatedFile, onClick, onClear",
+        "实现状态计算逻辑：empty(灰)/partial(黄)/complete(绿)",
+        "使用 fixed right-6 bottom-6 z-40 定位",
+        "参考 Sidebar.tsx 的 IconButton 样式：w-12 h-12 rounded-xl shadow-lg",
+        "添加状态徽章：absolute -top-1 -right-1 w-3 h-3 rounded-full",
+        "添加 hover 和 active 状态动画"
+      ],
+      "reference": {
+        "pattern": "IconButton pattern",
+        "files": ["src/components/Sidebar.tsx:29-46"],
+        "examples": "参考 Sidebar 的 IconButton 组件样式和交互"
+      },
+      "acceptance": [
+        "按钮固定在右下角，不随页面滚动",
+        "状态徽章正确显示三种状态颜色",
+        "点击触发 onClick 回调"
+      ]
+    },
+    {
+      "id": "T2",
+      "title": "Create UploadModal centered popup",
+      "scope": "src/components/",
+      "action": "Create",
+      "description": "创建居中模态弹窗组件，复用 UploadDrawer 的上传区域逻辑，提供更好的桌面端体验",
+      "modification_points": [
+        {
+          "file": "src/components/UploadModal.tsx",
+          "target": "new file",
+          "change": "创建居中弹窗组件，包含遮罩层、弹窗容器、上传区域"
+        }
+      ],
+      "implementation": [
+        "创建 UploadModalProps 接口：isOpen, onClose, originalFile, annotatedFile, onOriginalSelect, onAnnotatedSelect",
+        "实现遮罩层：fixed inset-0 z-50 bg-black/40",
+        "实现弹窗容器：居中定位 max-w-2xl w-full mx-4",
+        "复用 UploadDrawer 的 UploadDropZone 组件或提取共享逻辑",
+        "添加 ESC 键关闭、点击遮罩关闭",
+        "添加进入/退出动画：scale-95 opacity-0 → scale-100 opacity-100"
+      ],
+      "reference": {
+        "pattern": "Modal pattern",
+        "files": ["src/components/UploadDrawer.tsx:244-308", "src/components/ImagePreview.tsx"],
+        "examples": "参考 UploadDrawer 的遮罩和动画实现，ImagePreview 的全屏模态"
+      },
+      "acceptance": [
+        "弹窗居中显示，响应式宽度",
+        "ESC 键和点击遮罩可关闭",
+        "上传功能与原 UploadDrawer 一致"
+      ]
+    },
+    {
+      "id": "T3",
+      "title": "Integrate floating button and modal in App.tsx",
+      "scope": "src/App.tsx",
+      "action": "Update",
+      "description": "替换 UploadStatusBar 为 FloatingUploadButton，集成 UploadModal，保持全局拖拽和粘贴功能",
+      "depends_on": ["T1", "T2"],
+      "modification_points": [
+        {
+          "file": "src/App.tsx",
+          "target": "imports section",
+          "change": "添加 FloatingUploadButton 和 UploadModal 导入，移除 UploadStatusBar 导入"
+        },
+        {
+          "file": "src/App.tsx",
+          "target": "line 448-457",
+          "change": "移除 UploadStatusBar 渲染"
+        },
+        {
+          "file": "src/App.tsx",
+          "target": "line 733-742",
+          "change": "替换 UploadDrawer 为 UploadModal"
+        },
+        {
+          "file": "src/App.tsx",
+          "target": "after main content",
+          "change": "添加 FloatingUploadButton 渲染（仅 single 模式）"
+        }
+      ],
+      "implementation": [
+        "导入新组件，移除 UploadStatusBar 导入",
+        "移除 UploadStatusBar 渲染代码块",
+        "在 single 模式下渲染 FloatingUploadButton（fixed 定位，不占布局）",
+        "替换 UploadDrawer 为 UploadModal",
+        "保持 isDrawerOpen 状态控制弹窗显示",
+        "验证全局拖拽和粘贴功能正常工作"
+      ],
+      "reference": {
+        "pattern": "Component integration",
+        "files": ["src/App.tsx:103", "src/App.tsx:197-238", "src/App.tsx:364-370"]
+      },
+      "acceptance": [
+        "UploadStatusBar 完全移除，不占用布局空间",
+        "FloatingUploadButton 显示在右下角",
+        "点击按钮打开居中弹窗",
+        "全局拖拽和 Ctrl+V 粘贴功能正常"
+      ]
+    }
+  ],
+  "design_decisions": [
+    {
+      "decision": "使用居中模态弹窗而非底部抽屉",
+      "rationale": "用户明确选择新建居中弹窗，桌面端体验更好",
+      "tradeoff": "需要新建组件，工作量略增",
+      "alternatives": ["复用现有 UploadDrawer 底部抽屉"]
+    },
+    {
+      "decision": "悬浮按钮使用 z-40 层级",
+      "rationale": "低于模态弹窗 z-50，高于普通内容，避免与 Sidebar overlay 冲突",
+      "alternatives": ["z-30", "z-50"]
+    },
+    {
+      "decision": "保持全局拖拽功能",
+      "rationale": "用户明确选择保持全局拖拽，提升易用性",
+      "alternatives": ["仅拖拽到按钮触发"]
+    }
+  ],
+  "flow_control": {
+    "execution_order": [
+      {
+        "phase": "parallel-1",
+        "tasks": ["T1", "T2"],
+        "type": "parallel"
+      },
+      {
+        "phase": "sequential-1",
+        "tasks": ["T3"],
+        "type": "sequential"
+      }
+    ],
+    "exit_conditions": {
+      "success": "所有任务完成，上传功能正常工作",
+      "failure": "任何任务失败或功能回归"
+    }
+  },
+  "focus_paths": [
+    "src/components/FloatingUploadButton.tsx",
+    "src/components/UploadModal.tsx",
+    "src/App.tsx"
+  ],
+  "estimated_time": "45 minutes",
+  "recommended_execution": "Agent",
+  "complexity": "Medium",
+  "_metadata": {
+    "timestamp": "2026-02-01T12:30:00.000Z",
+    "source": "direct-planning",
+    "planning_mode": "direct",
+    "exploration_angles": ["ui-patterns", "integration-points"]
+  }
+}

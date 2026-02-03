@@ -1,0 +1,42 @@
+{
+  "task_id": "IMPL-004",
+  "title": "清理批量处理模式 UI",
+  "priority": "P1",
+  "status": "completed",
+  "description": "移除批量处理设置中的差值模式相关 UI，简化界面",
+  "files": [
+    "src/App.tsx"
+  ],
+  "implementation_steps": [
+    {
+      "step": 1,
+      "description": "移除处理模式切换按钮",
+      "details": "删除'差值提取'/'遮罩模式'切换 UI"
+    },
+    {
+      "step": 2,
+      "description": "移除差值模式参数",
+      "details": "删除 threshold, edgeSmooth, denoiseLevel, invertAnnotation, colorOnly, saturationThreshold 等参数 UI"
+    },
+    {
+      "step": 3,
+      "description": "简化批量处理设置面板",
+      "details": "只保留遮罩模式相关参数"
+    }
+  ],
+  "acceptance_criteria": [
+    "批量处理设置只显示遮罩模式参数",
+    "界面更简洁",
+    "功能正常工作"
+  ],
+  "dependencies": [
+    "IMPL-001"
+  ],
+  "status_history": [
+    {
+      "from": "pending",
+      "to": "completed",
+      "changed_at": "2026-01-30T17:35:24.567Z"
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "id": "IMPL-006",
+  "title": "移除 Sobel 边缘检测相关代码",
+  "phase": 1,
+  "priority": "high",
+  "effort": "S",
+  "status": "completed",
+  "file": "src/utils/imageProcessor.ts",
+  "description": "移除不再需要的 Sobel 边缘检测和边缘引导膨胀代码",
+  "remove_functions": [
+    {
+      "name": "sobelEdgeDetect",
+      "lines": "91-120",
+      "reason": "边缘引导膨胀已移除，不再需要"
+    },
+    {
+      "name": "edgeGuidedExpand",
+      "lines": "126-163",
+      "reason": "改用简单圆形膨胀"
+    }
+  ],
+  "update_functions": [
+    {
+      "name": "extractTextMask",
+      "change": "移除 useEdgeGuided 和 edgeThreshold 参数，简化为仅圆形膨胀"
+    }
+  ],
+  "code_to_remove": "// 删除 sobelEdgeDetect 函数 (约30行)\n// 删除 edgeGuidedExpand 函数 (约40行)\n// 简化 extractTextMask 函数参数",
+  "simplified_extractTextMask": "function extractTextMask(\n  imageData: ImageData,\n  textThreshold: number,\n  expandRadius: number\n): boolean[] {\n  const { width, height, data } = imageData;\n  const mask = new Array<boolean>(width * height).fill(false);\n\n  // 检测暗色像素（文字）\n  for (let y = 0; y < height; y++) {\n    for (let x = 0; x < width; x++) {\n      const idx = (y * width + x) * 4;\n      const luminance = getLuminance(data[idx], data[idx + 1], data[idx + 2]);\n      if (luminance < textThreshold) {\n        mask[y * width + x] = true;\n      }\n    }\n  }\n\n  // 圆形膨胀\n  if (expandRadius > 0) {\n    const expanded = new Array<boolean>(width * height).fill(false);\n    for (let y = 0; y < height; y++) {\n      for (let x = 0; x < width; x++) {\n        if (mask[y * width + x]) {\n          for (let dy = -expandRadius; dy <= expandRadius; dy++) {\n            for (let dx = -expandRadius; dx <= expandRadius; dx++) {\n              const nx = x + dx;\n              const ny = y + dy;\n              if (nx >= 0 && nx < width && ny >= 0 && ny < height) {\n                if (dx * dx + dy * dy <= expandRadius * expandRadius) {\n                  expanded[ny * width + nx] = true;\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n    return expanded;\n  }\n\n  return mask;\n}",
+  "dependencies": [
+    "IMPL-001"
+  ],
+  "blocks": [],
+  "can_parallel": true,
+  "acceptance_criteria": [
+    "sobelEdgeDetect 函数已删除",
+    "edgeGuidedExpand 函数已删除",
+    "extractTextMask 参数已简化",
+    "TypeScript 编译无错误",
+    "无未使用的代码"
+  ],
+  "status_history": [
+    {
+      "from": "pending",
+      "to": "completed",
+      "changed_at": "2026-02-01T06:17:28.505Z"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "id": "IMPL-002",
+  "title": "实现 parseColor() 颜色解析函数",
+  "phase": 1,
+  "priority": "critical",
+  "effort": "S",
+  "status": "completed",
+  "file": "src/utils/imageProcessor.ts",
+  "description": "实现 CSS 颜色值解析函数，将颜色字符串转换为 RGB 值",
+  "implementation": {
+    "function_name": "parseColor",
+    "signature": "function parseColor(color: string): { r: number; g: number; b: number }",
+    "algorithm": "使用 Canvas 2D API 解析颜色，支持所有 CSS 颜色格式",
+    "fallback": "解析失败时返回黄色 (255, 255, 0)"
+  },
+  "code_template": "/**\n * 解析 CSS 颜色值为 RGB\n * 支持 hex, rgb(), rgba(), 颜色名称等格式\n */\nfunction parseColor(color: string): { r: number; g: number; b: number } {\n  const canvas = document.createElement('canvas');\n  canvas.width = canvas.height = 1;\n  const ctx = canvas.getContext('2d')!;\n  ctx.fillStyle = color;\n  ctx.fillRect(0, 0, 1, 1);\n  const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;\n  return { r, g, b };\n}",
+  "dependencies": [
+    "IMPL-001"
+  ],
+  "blocks": [
+    "IMPL-003"
+  ],
+  "acceptance_criteria": [
+    "支持 HEX 格式 (#FFFF00)",
+    "支持 RGB 格式 (rgb(255, 255, 0))",
+    "支持颜色名称 (yellow)",
+    "解析失败时返回默认值"
+  ],
+  "status_history": [
+    {
+      "from": "pending",
+      "to": "completed",
+      "changed_at": "2026-02-01T06:17:28.501Z"
+    }
+  ]
+}

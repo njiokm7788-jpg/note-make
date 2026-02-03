@@ -1,0 +1,80 @@
+{
+  "project_structure": "React SPA with layered architecture: App.tsx (orchestrator) -> components/ (UI layer) -> utils/ (business logic). Current layout uses 3-column grid in single mode with upload area + settings panel in left column, preview in right 2 columns. New layout requires: (1) UploadStatusBar below header, (2) UploadDrawer as overlay, (3) Sidebar replacing left column settings, (4) Preview area maximized.",
+  "relevant_files": [
+    {
+      "path": "src/App.tsx",
+      "relevance": 0.95,
+      "rationale": "Main orchestrator - must integrate UploadStatusBar, UploadDrawer, Sidebar components and manage new state (drawerOpen, sidebarCollapsed). Lines 162-382 contain single mode layout that needs complete restructuring."
+    },
+    {
+      "path": "src/components/ProcessingPanel.tsx",
+      "relevance": 0.85,
+      "rationale": "Current settings panel - will be refactored into new Sidebar component. Props interface (lines 4-16) defines state contract that Sidebar must maintain. Contains preset selection, advanced settings, and action buttons."
+    },
+    {
+      "path": "src/components/ImageUploader.tsx",
+      "relevance": 0.80,
+      "rationale": "Current upload component - drag/drop logic (lines 36-66) will be reused in UploadDrawer. Props interface (lines 4-10) defines onFileSelect callback pattern."
+    },
+    {
+      "path": "src/utils/imageProcessor.ts",
+      "relevance": 0.70,
+      "rationale": "ProcessingOptions interface (lines 6-17) and presets array (lines 40-77) are shared dependencies for Sidebar. generatePreview function (lines 423-463) is called from App.tsx."
+    },
+    {
+      "path": "src/components/ImagePreview.tsx",
+      "relevance": 0.60,
+      "rationale": "Preview component - no changes needed but integration point for preview area layout. Used in both simple and comparison views."
+    },
+    {
+      "path": "src/utils/fileUtils.ts",
+      "relevance": 0.55,
+      "rationale": "File utilities - isImageFile, downloadSingleResult used by upload and download flows. May need new helpers for file type detection (annotated pattern matching)."
+    }
+  ],
+  "patterns": "React functional components with hooks (useState, useCallback, useEffect). Props-based state lifting to App.tsx. Tailwind CSS utility classes for styling. Debounced real-time preview pattern (useDebounce hook at lines 17-26). Toast notification pattern for user feedback. Conditional rendering based on mode state.",
+  "dependencies": "Internal: ProcessingOptions type from utils/imageProcessor.ts, file utilities from utils/fileUtils.ts. External: React 19.0.0 hooks, Tailwind CSS 4.0.0 for styling. No external state management library - all state in App.tsx via useState.",
+  "integration_points": "1. **App.tsx:162-233** - Header section: Insert UploadStatusBar component after header (line 233), before main content. 2. **App.tsx:237-382** - Single mode layout: Replace current 3-column grid with new Sidebar + Preview layout. 3. **App.tsx:29-40** - State declarations: Add drawerOpen, sidebarCollapsed, uploadStatus states. 4. **App.tsx:54-94** - Paste handler: Integrate with UploadStatusBar/Drawer state updates. 5. **App.tsx:140-157** - handleProcess/handleDownload: Wire to Sidebar action buttons. 6. **ProcessingPanel.tsx:18-30** - Props destructuring: Sidebar will need same props plus collapsed state. 7. **ImageUploader.tsx:22-34** - handleFile callback: Reuse in UploadDrawer drop zones. 8. **New component integration**: UploadStatusBar needs originalFile, annotatedFile, onOpenDrawer props. UploadDrawer needs isOpen, onClose, onFileSelect props. Sidebar needs all ProcessingPanel props plus collapsed, onToggleCollapse.",
+  "constraints": "1. Backward compatibility: Batch mode (lines 383-493) must remain unchanged. 2. State contract: ProcessingOptions interface cannot change. 3. Real-time preview: Debounced processing flow must be preserved. 4. Responsive: Sidebar must support collapsed state at <1024px. 5. Accessibility: ARIA attributes required per design specs. 6. Animation timing: Follow design spec (drawer 300ms, sidebar 250ms, overlay 200ms). 7. No new external dependencies - use existing React hooks and Tailwind.",
+  "clarification_needs": [
+    {
+      "question": "Should the UploadDrawer auto-close when both images are uploaded, or require explicit 'Done' button click?",
+      "context": "Design spec mentions 'autoCloseOnComplete: boolean' as configurable option. Need to decide default behavior for implementation.",
+      "options": [
+        "Auto-close after 500ms delay when both uploaded",
+        "Require explicit 'Done' button click",
+        "Make it a user preference stored in localStorage"
+      ],
+      "recommended": 0
+    },
+    {
+      "question": "How should the Sidebar behave on medium screens (1024-1279px)?",
+      "context": "Design spec shows sidebar can be manually collapsed on medium screens. Need to clarify if it should default to expanded or collapsed.",
+      "options": [
+        "Default expanded, user can collapse manually",
+        "Default collapsed, user can expand manually",
+        "Remember last user preference via localStorage"
+      ],
+      "recommended": 2
+    },
+    {
+      "question": "Should new components be created as separate files or integrated into existing components?",
+      "context": "UploadStatusBar, UploadDrawer, Sidebar are new UI elements. Could be separate component files or refactored from existing ProcessingPanel/ImageUploader.",
+      "options": [
+        "Create 3 new component files (UploadStatusBar.tsx, UploadDrawer.tsx, Sidebar.tsx)",
+        "Refactor ProcessingPanel into Sidebar, create 2 new files for upload components",
+        "Create single new file with all 3 components exported"
+      ],
+      "recommended": 0
+    }
+  ],
+  "_metadata": {
+    "timestamp": "2026-01-31T12:00:00.000Z",
+    "task_description": "Based on .workflow/.brainstorming/ux-expert/ design specs, implement drawer-style upload area + sidebar settings layout refactor",
+    "source": "cli-explore-agent",
+    "exploration_angle": "integration-points",
+    "exploration_index": 2,
+    "total_explorations": 4,
+    "duration_seconds": 45
+  }
+}

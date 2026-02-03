@@ -1,0 +1,80 @@
+{
+  "project_structure": "React 19 + Vite 6 + Tailwind CSS 4 application with layered architecture. Current dependencies are minimal: react/react-dom for UI, jszip/file-saver for file operations. No dedicated animation library exists - all transitions use Tailwind CSS utility classes (transition-all, duration-200/300ms, ease-out). The design specs require drawer animations (300ms ease-out), overlay fades (200ms ease), and sidebar collapse (250ms ease-out) which can be achieved with existing Tailwind capabilities.",
+  "relevant_files": [
+    {
+      "path": "package.json",
+      "relevance": 1.0,
+      "rationale": "Central dependency manifest - must be updated if new packages are needed for drawer/sidebar animations"
+    },
+    {
+      "path": "src/index.css",
+      "relevance": 0.9,
+      "rationale": "Global styles with Tailwind @theme customizations - may need custom animation keyframes or transition utilities"
+    },
+    {
+      "path": "vite.config.ts",
+      "relevance": 0.7,
+      "rationale": "Build configuration - relevant if adding new Vite plugins for animation support"
+    },
+    {
+      "path": "src/App.tsx",
+      "relevance": 0.8,
+      "rationale": "Main component using useState/useEffect/useCallback/useRef hooks - pattern reference for drawer state management"
+    },
+    {
+      "path": "src/components/ProcessingPanel.tsx",
+      "relevance": 0.8,
+      "rationale": "Contains existing collapsible section with rotate-180 transform animation - pattern for sidebar collapse"
+    },
+    {
+      "path": "src/components/ImageUploader.tsx",
+      "relevance": 0.7,
+      "rationale": "Drag-drop implementation with transition-all duration-200 - pattern for drawer upload zones"
+    },
+    {
+      "path": "src/components/ImagePreview.tsx",
+      "relevance": 0.6,
+      "rationale": "Uses transform translate/scale with conditional transitions - pattern for overlay animations"
+    },
+    {
+      "path": "src/utils/fileUtils.ts",
+      "relevance": 0.5,
+      "rationale": "File handling utilities (jszip, file-saver) - no changes needed but integration point"
+    }
+  ],
+  "patterns": "Transition pattern: Tailwind utility classes (transition-all, transition-colors, transition-transform) with duration-200 or duration-300. Animation timing: ease-out for expand, ease-in for collapse. State-driven animations: conditional className with ternary operators (e.g., showAdvanced ? 'rotate-180' : ''). No external animation libraries - pure CSS transitions via Tailwind. Custom hooks: useDebounce pattern exists in App.tsx for delayed state updates.",
+  "dependencies": "CURRENT: react@19.0.0, react-dom@19.0.0, jszip@3.10.1, file-saver@2.0.5. DEV: tailwindcss@4.0.0, @tailwindcss/vite@4.0.0, vite-plugin-svgr@4.3.0, typescript@5.6.2. ANALYSIS: The design specs require (1) drawer slide animations (translateY), (2) overlay fade (opacity), (3) sidebar width transitions, (4) focus trap for accessibility, (5) body scroll lock. Tailwind CSS 4 can handle items 1-3 natively. Items 4-5 may benefit from lightweight utilities but can be implemented with vanilla JS/React hooks.",
+  "integration_points": "React hooks integration: useState for drawer/sidebar open state, useEffect for ESC key listener and body scroll lock, useCallback for memoized handlers, useRef for focus management. Tailwind integration: existing @theme block in index.css for custom colors (primary-50 to primary-900). CSS transitions: all components use inline Tailwind classes, no separate CSS modules. localStorage: design spec requires state persistence for sidebar collapsed state and advanced settings.",
+  "constraints": "1. Tailwind CSS 4 uses new @theme syntax instead of tailwind.config.js - custom animations must be defined in index.css. 2. No existing animation library - adding one (framer-motion, react-spring) would increase bundle size significantly. 3. React 19 compatibility required for any new dependencies. 4. Design specs require specific timing (300ms drawer, 250ms sidebar, 200ms overlay) - must match exactly. 5. Focus trap and scroll lock are accessibility requirements that may need custom implementation or lightweight package.",
+  "clarification_needs": [
+    {
+      "question": "Should we add a dedicated animation library (e.g., framer-motion) for smoother drawer/sidebar animations, or implement with pure CSS/Tailwind?",
+      "context": "The design specs require complex animations (drawer slide, overlay fade, sidebar collapse). Tailwind CSS can handle these with transition utilities, but framer-motion would provide smoother physics-based animations and easier gesture support (swipe to close). Trade-off is bundle size (~30KB gzipped for framer-motion).",
+      "options": [
+        "Pure Tailwind CSS transitions (zero additional bundle size, simpler implementation)",
+        "Add framer-motion for advanced animations (better UX, gesture support, ~30KB)",
+        "Add lightweight alternative like @formkit/auto-animate (~2KB, simpler API)"
+      ],
+      "recommended": 0
+    },
+    {
+      "question": "How should focus trap and body scroll lock be implemented for the drawer overlay?",
+      "context": "The design spec requires focus trap (Tab cycles within drawer) and scroll lock (prevent background scroll when drawer open). These can be implemented with vanilla JS hooks or dedicated packages like focus-trap-react (~5KB) and body-scroll-lock (~1KB).",
+      "options": [
+        "Custom React hooks implementation (zero dependencies, full control)",
+        "Add focus-trap-react + body-scroll-lock packages (battle-tested, ~6KB total)",
+        "Use native HTML dialog element with inert attribute (modern browsers only)"
+      ],
+      "recommended": 0
+    }
+  ],
+  "_metadata": {
+    "timestamp": "2026-01-31T12:00:00.000Z",
+    "task_description": "基于 .workflow/.brainstorming/ux-expert/ 的设计规格，实现抽屉式上传区 + 侧边栏设置布局重构",
+    "source": "cli-explore-agent",
+    "exploration_angle": "dependencies",
+    "exploration_index": 3,
+    "total_explorations": 4,
+    "duration_seconds": 45
+  }
+}

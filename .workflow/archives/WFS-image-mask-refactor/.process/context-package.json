@@ -1,0 +1,396 @@
+{
+  "metadata": {
+    "task_description": "重构图片处理逻辑，实现反向遮罩叠加模式：使用清晰原图检测文字区域，在带笔记的模糊图片对应位置添加色块，最终合成清晰字体+笔记的结果图片",
+    "timestamp": "2026-01-31T12:00:00Z",
+    "keywords": ["反向遮罩", "图片处理", "Canvas", "文字检测", "色块叠加", "图像合成"],
+    "complexity": "medium",
+    "session_id": "WFS-image-mask-refactor"
+  },
+  "project_context": {
+    "architecture_patterns": ["React Functional Components", "Hooks-based State Management", "Canvas 2D API", "Modular Utilities"],
+    "coding_conventions": {
+      "naming": {
+        "functions": "camelCase",
+        "classes": "PascalCase",
+        "interfaces": "PascalCase",
+        "constants": "UPPER_SNAKE_CASE"
+      },
+      "error_handling": {
+        "pattern": "try-catch with console.error"
+      },
+      "async_patterns": {
+        "preferred": "async/await with Promise.all for parallel operations"
+      }
+    },
+    "tech_stack": {
+      "language": "typescript",
+      "frameworks": ["react@19.0.0", "vite@6.0.5"],
+      "libraries": ["jszip@3.10.1", "file-saver@2.0.5"],
+      "styling": ["tailwindcss@4.0.0"],
+      "testing": []
+    }
+  },
+  "assets": {
+    "documentation": [
+      {
+        "path": "CLAUDE.md",
+        "scope": "project-wide",
+        "contains": ["project purpose", "structure overview", "component descriptions", "dependencies", "integration patterns"],
+        "relevance_score": 0.95
+      },
+      {
+        "path": "src/components/CLAUDE.md",
+        "scope": "components",
+        "contains": ["component documentation", "props interfaces", "integration patterns"],
+        "relevance_score": 0.85
+      },
+      {
+        "path": ".workflow/active/WFS-image-mask-refactor/.brainstorming/guidance-specification.md",
+        "scope": "task-specific",
+        "contains": ["project goals", "confirmed decisions", "technical reference", "constraints"],
+        "relevance_score": 0.98
+      },
+      {
+        "path": ".workflow/active/WFS-image-mask-refactor/.brainstorming/synthesis-specification.md",
+        "scope": "task-specific",
+        "contains": ["comprehensive analysis", "processing flow", "interface design", "implementation plan"],
+        "relevance_score": 0.99
+      }
+    ],
+    "source_code": [
+      {
+        "path": "src/utils/imageProcessor.ts",
+        "role": "core-algorithm",
+        "dependencies": [],
+        "exports": ["ProcessingOptions", "defaultProcessingOptions", "Preset", "presets", "loadImage", "getImageData", "processImagePair", "imageDataToBlob", "imageDataToDataURL", "generatePreview"],
+        "relevance_score": 0.99,
+        "change_type": "重写",
+        "change_description": "核心算法重构：移除边缘引导膨胀，添加色块叠加功能，修改合成逻辑"
+      },
+      {
+        "path": "src/components/Sidebar.tsx",
+        "role": "ui-control",
+        "dependencies": ["../utils/imageProcessor"],
+        "exports": ["Sidebar"],
+        "relevance_score": 0.95,
+        "change_type": "修改",
+        "change_description": "添加色块颜色选择器，添加色块透明度滑块，移除边缘引导膨胀控件，更新预设方案"
+      },
+      {
+        "path": "src/App.tsx",
+        "role": "orchestration",
+        "dependencies": ["./components/ImagePreview", "./components/Sidebar", "./components/UploadStatusBar", "./components/UploadDrawer", "./components/BatchProcessor", "./utils/imageProcessor", "./utils/fileUtils"],
+        "exports": ["default (App)"],
+        "relevance_score": 0.90,
+        "change_type": "修改",
+        "change_description": "更新 ProcessingOptions 类型引用，调整默认选项"
+      },
+      {
+        "path": "src/components/ProcessingPanel.tsx",
+        "role": "ui-control-backup",
+        "dependencies": ["../utils/imageProcessor"],
+        "exports": ["ProcessingPanel"],
+        "relevance_score": 0.75,
+        "change_type": "可能修改",
+        "change_description": "与 Sidebar 功能重叠，可能需要同步更新或移除"
+      },
+      {
+        "path": "src/components/BatchProcessor.tsx",
+        "role": "batch-processing",
+        "dependencies": ["../utils/fileUtils", "../utils/imageProcessor"],
+        "exports": ["BatchProcessor"],
+        "relevance_score": 0.70,
+        "change_type": "无需修改",
+        "change_description": "通过 options prop 接收处理选项，自动适配新接口"
+      },
+      {
+        "path": "src/utils/fileUtils.ts",
+        "role": "file-utilities",
+        "dependencies": ["jszip", "file-saver", "./imageProcessor"],
+        "exports": ["ImagePair", "generateId", "getBaseName", "getExtension", "downloadSingleResult", "downloadBatchResults", "isImageFile", "formatFileSize"],
+        "relevance_score": 0.65,
+        "change_type": "无需修改",
+        "change_description": "文件工具函数，不涉及处理逻辑变更"
+      },
+      {
+        "path": "src/components/ImagePreview.tsx",
+        "role": "preview-display",
+        "dependencies": [],
+        "exports": ["ImagePreview"],
+        "relevance_score": 0.60,
+        "change_type": "无需修改",
+        "change_description": "纯展示组件，不涉及处理逻辑"
+      }
+    ],
+    "config": [
+      {
+        "path": "package.json",
+        "relevance_score": 0.80,
+        "contains": ["dependencies", "scripts", "project metadata"]
+      },
+      {
+        "path": "tsconfig.json",
+        "relevance_score": 0.50,
+        "contains": ["TypeScript configuration"]
+      },
+      {
+        "path": "vite.config.ts",
+        "relevance_score": 0.40,
+        "contains": ["Vite build configuration"]
+      }
+    ],
+    "tests": []
+  },
+  "dependencies": {
+    "internal": [
+      {
+        "from": "src/App.tsx",
+        "to": "src/utils/imageProcessor.ts",
+        "type": "import",
+        "imports": ["generatePreview", "presets", "ProcessingOptions"]
+      },
+      {
+        "from": "src/App.tsx",
+        "to": "src/utils/fileUtils.ts",
+        "type": "import",
+        "imports": ["downloadSingleResult"]
+      },
+      {
+        "from": "src/App.tsx",
+        "to": "src/components/Sidebar.tsx",
+        "type": "component-usage"
+      },
+      {
+        "from": "src/components/Sidebar.tsx",
+        "to": "src/utils/imageProcessor.ts",
+        "type": "import",
+        "imports": ["presets", "ProcessingOptions"]
+      },
+      {
+        "from": "src/components/ProcessingPanel.tsx",
+        "to": "src/utils/imageProcessor.ts",
+        "type": "import",
+        "imports": ["presets", "ProcessingOptions"]
+      },
+      {
+        "from": "src/components/BatchProcessor.tsx",
+        "to": "src/utils/fileUtils.ts",
+        "type": "import",
+        "imports": ["generateId", "getBaseName", "isImageFile", "downloadBatchResults", "ImagePair"]
+      },
+      {
+        "from": "src/components/BatchProcessor.tsx",
+        "to": "src/utils/imageProcessor.ts",
+        "type": "import",
+        "imports": ["ProcessingOptions"]
+      },
+      {
+        "from": "src/utils/fileUtils.ts",
+        "to": "src/utils/imageProcessor.ts",
+        "type": "import",
+        "imports": ["processImagePair", "ProcessingOptions", "defaultProcessingOptions"]
+      }
+    ],
+    "external": [
+      {
+        "package": "react",
+        "version": "^19.0.0",
+        "usage": "UI framework, hooks (useState, useCallback, useEffect, useRef)"
+      },
+      {
+        "package": "jszip",
+        "version": "^3.10.1",
+        "usage": "ZIP file creation for batch downloads"
+      },
+      {
+        "package": "file-saver",
+        "version": "^2.0.5",
+        "usage": "Client-side file download"
+      },
+      {
+        "package": "tailwindcss",
+        "version": "^4.0.0",
+        "usage": "Utility-first CSS styling"
+      }
+    ]
+  },
+  "brainstorm_artifacts": {
+    "guidance_specification": {
+      "path": ".workflow/active/WFS-image-mask-refactor/.brainstorming/guidance-specification.md",
+      "exists": true,
+      "summary": "定义项目目标、确认的决策（移除现有功能完全重写、亮度阈值检测、清晰图检测+模糊图加色块流程、用户可选色块颜色）、技术参考和约束条件"
+    },
+    "role_analyses": [
+      {
+        "role": "system-architect",
+        "files": [
+          {
+            "path": ".workflow/active/WFS-image-mask-refactor/.brainstorming/system-architect/analysis.md",
+            "type": "primary",
+            "summary": "模块设计、接口设计（ProcessingOptions 简化版）、数据流设计、性能优化策略、错误处理设计、UI 组件适配建议"
+          }
+        ]
+      },
+      {
+        "role": "algorithm-expert",
+        "files": [
+          {
+            "path": ".workflow/active/WFS-image-mask-refactor/.brainstorming/algorithm-expert/analysis.md",
+            "type": "primary",
+            "summary": "文字检测算法（亮度阈值）、遮罩膨胀算法（圆形膨胀）、色块叠加算法、图像合成算法、边界处理、性能优化建议"
+          }
+        ]
+      },
+      {
+        "role": "ui-designer",
+        "files": [
+          {
+            "path": ".workflow/active/WFS-image-mask-refactor/.brainstorming/ui-designer/analysis.md",
+            "type": "primary",
+            "summary": "Sidebar 控件布局、色块颜色选择器设计（预设+自定义）、预设方案设计、预览体验设计、用户引导设计、响应式设计"
+          }
+        ]
+      },
+      {
+        "role": "test-strategist",
+        "files": [
+          {
+            "path": ".workflow/active/WFS-image-mask-refactor/.brainstorming/test-strategist/analysis.md",
+            "type": "primary",
+            "summary": "功能测试用例、边界测试用例、性能测试、视觉回归测试、测试优先级矩阵、测试执行指南"
+          }
+        ]
+      }
+    ],
+    "synthesis_output": {
+      "path": ".workflow/active/WFS-image-mask-refactor/.brainstorming/synthesis-specification.md",
+      "exists": true,
+      "summary": "综合决策汇总、核心处理流程图、接口设计（ProcessingOptions 简化版）、预设方案、UI 设计要点、实施计划（3 个 Phase）、关键测试用例、风险与缓解、文件变更清单"
+    }
+  },
+  "conflict_detection": {
+    "risk_level": "medium",
+    "risk_factors": {
+      "existing_implementations": [
+        "src/utils/imageProcessor.ts",
+        "src/components/Sidebar.tsx",
+        "src/components/ProcessingPanel.tsx"
+      ],
+      "api_changes": true,
+      "architecture_changes": true,
+      "data_model_changes": true,
+      "breaking_changes": [
+        "ProcessingOptions 接口变更：移除 annotationOpacity、useEdgeGuidedExpand、edgeThreshold",
+        "ProcessingOptions 接口变更：新增 blockColor、blockOpacity",
+        "预设方案完全替换",
+        "处理流程逻辑变更"
+      ]
+    },
+    "affected_modules": [
+      "src/utils/imageProcessor.ts",
+      "src/components/Sidebar.tsx",
+      "src/components/ProcessingPanel.tsx",
+      "src/App.tsx"
+    ],
+    "mitigation_strategy": "按 Phase 顺序实施：Phase 1 核心算法重写 -> Phase 2 UI 适配 -> Phase 3 优化与测试。每个 Phase 完成后进行手动验证。"
+  },
+  "exploration_results": {
+    "manifest_path": null,
+    "exploration_count": 0,
+    "complexity": "Medium",
+    "angles": [],
+    "explorations": [],
+    "aggregated_insights": {
+      "critical_files": [
+        {
+          "path": "src/utils/imageProcessor.ts",
+          "relevance": 0.99,
+          "reason": "核心算法文件，需要完全重写"
+        },
+        {
+          "path": "src/components/Sidebar.tsx",
+          "relevance": 0.95,
+          "reason": "主要 UI 控件，需要添加色块选择器"
+        },
+        {
+          "path": "src/App.tsx",
+          "relevance": 0.90,
+          "reason": "主编排组件，需要更新类型引用"
+        },
+        {
+          "path": ".workflow/active/WFS-image-mask-refactor/.brainstorming/synthesis-specification.md",
+          "relevance": 0.99,
+          "reason": "综合分析报告，包含完整实施方案"
+        }
+      ],
+      "conflict_indicators": [
+        {
+          "type": "interface_change",
+          "description": "ProcessingOptions 接口字段变更，影响所有使用该接口的组件",
+          "severity": "high"
+        },
+        {
+          "type": "algorithm_replacement",
+          "description": "移除 Sobel 边缘检测和边缘引导膨胀，简化为圆形膨胀",
+          "severity": "medium"
+        },
+        {
+          "type": "preset_replacement",
+          "description": "预设方案完全替换为新的高亮预设",
+          "severity": "medium"
+        }
+      ],
+      "clarification_needs": [],
+      "constraints": [
+        {
+          "constraint": "技术栈: React 19 + TypeScript + Canvas API",
+          "source": "guidance-specification"
+        },
+        {
+          "constraint": "保持现有的响应式设计",
+          "source": "guidance-specification"
+        },
+        {
+          "constraint": "支持大图片处理，考虑分块处理",
+          "source": "guidance-specification"
+        },
+        {
+          "constraint": "保持实时预览功能",
+          "source": "guidance-specification"
+        }
+      ],
+      "all_patterns": [
+        {
+          "pattern": "亮度阈值检测: luminance = 0.299 * R + 0.587 * G + 0.114 * B",
+          "source": "algorithm-expert"
+        },
+        {
+          "pattern": "圆形膨胀: dx^2 + dy^2 <= radius^2",
+          "source": "algorithm-expert"
+        },
+        {
+          "pattern": "色块叠加: 在文字区域绘制用户选择的颜色",
+          "source": "synthesis-specification"
+        },
+        {
+          "pattern": "图像合成: 文字区域用清晰原图，非文字区域用带色块的模糊图",
+          "source": "synthesis-specification"
+        }
+      ],
+      "all_integration_points": [
+        {
+          "point": "App.tsx -> imageProcessor.ts: generatePreview(), ProcessingOptions",
+          "source": "dependency-analysis"
+        },
+        {
+          "point": "Sidebar.tsx -> imageProcessor.ts: presets, ProcessingOptions",
+          "source": "dependency-analysis"
+        },
+        {
+          "point": "fileUtils.ts -> imageProcessor.ts: processImagePair(), ProcessingOptions",
+          "source": "dependency-analysis"
+        }
+      ]
+    }
+  }
+}

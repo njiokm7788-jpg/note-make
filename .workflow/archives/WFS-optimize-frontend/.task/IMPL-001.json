@@ -1,0 +1,48 @@
+{
+  "task_id": "IMPL-001",
+  "title": "实现预设方案系统",
+  "priority": "P0",
+  "status": "completed",
+  "description": "添加预设方案系统，让用户可以一键应用常用参数配置",
+  "files": [
+    "src/utils/imageProcessor.ts",
+    "src/components/ProcessingPanel.tsx",
+    "src/App.tsx"
+  ],
+  "implementation_steps": [
+    {
+      "step": 1,
+      "description": "在 imageProcessor.ts 中定义预设接口和预设数组",
+      "details": "添加 Preset 接口，定义 presets 数组包含标准、轻量、强调三个预设"
+    },
+    {
+      "step": 2,
+      "description": "在 ProcessingPanel 中添加预设选择 UI",
+      "details": "添加预设卡片组件，显示三个预设选项，支持点击选择"
+    },
+    {
+      "step": 3,
+      "description": "添加高级参数折叠功能",
+      "details": "默认折叠高级参数，添加展开/收起按钮"
+    },
+    {
+      "step": 4,
+      "description": "在 App.tsx 中添加预设状态管理",
+      "details": "添加 selectedPreset 状态，选择预设时自动应用参数"
+    }
+  ],
+  "acceptance_criteria": [
+    "提供 3 个预设：标准、轻量、强调",
+    "点击预设卡片立即应用参数",
+    "高级参数默认折叠",
+    "实时预览正常更新"
+  ],
+  "dependencies": [],
+  "status_history": [
+    {
+      "from": "pending",
+      "to": "completed",
+      "changed_at": "2026-01-30T17:35:24.562Z"
+    }
+  ]
+}

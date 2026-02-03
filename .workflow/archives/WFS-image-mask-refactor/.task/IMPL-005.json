@@ -1,0 +1,48 @@
+{
+  "id": "IMPL-005",
+  "title": "更新 processImagePair() 主流程",
+  "phase": 1,
+  "priority": "critical",
+  "effort": "M",
+  "status": "completed",
+  "file": "src/utils/imageProcessor.ts",
+  "description": "更新主处理流程，整合新的处理步骤",
+  "implementation": {
+    "function_name": "processImagePair",
+    "new_flow": [
+      "1. 加载图片 (loadImage)",
+      "2. 获取图像数据 (getImageData)",
+      "3. 尺寸对齐 (scaleImageData)",
+      "4. 文字区域检测 (extractTextMask) - 简化版，移除边缘引导参数",
+      "5. 色块叠加 (applyColorBlock) - 新增",
+      "6. 图像合成 (compositeImages) - 重写",
+      "7. 输出 (imageDataToBlob)"
+    ]
+  },
+  "code_changes": {
+    "extractTextMask_call": "移除 useEdgeGuided 和 edgeThreshold 参数",
+    "add_applyColorBlock": "在合成前调用 applyColorBlock",
+    "update_compositeImages": "使用新的合成逻辑"
+  },
+  "code_template": "export async function processImagePair(\n  originalFile: File,\n  annotatedFile: File,\n  options: ProcessingOptions = defaultProcessingOptions\n): Promise<Blob> {\n  // 加载图片\n  const [originalImg, annotatedImg] = await Promise.all([\n    loadImage(originalFile),\n    loadImage(annotatedFile),\n  ]);\n\n  // 获取图片数据\n  const originalData = getImageData(originalImg);\n  let annotatedData = getImageData(annotatedImg);\n\n  // 尺寸对齐\n  if (originalImg.width !== annotatedImg.width || originalImg.height !== annotatedImg.height) {\n    annotatedData = scaleImageData(annotatedData, originalData.width, originalData.height);\n  }\n\n  // 文字区域检测（简化版，仅圆形膨胀）\n  const textMask = extractTextMask(\n    originalData,\n    options.textThreshold,\n    options.maskExpand\n  );\n\n  // 色块叠加（在模糊标注图上）\n  const colorBlockData = applyColorBlock(\n    annotatedData,\n    textMask,\n    options.blockColor,\n    options.blockOpacity\n  );\n\n  // 图像合成\n  const resultData = compositeImages(originalData, colorBlockData, textMask);\n\n  return imageDataToBlob(resultData);\n}",
+  "dependencies": [
+    "IMPL-001",
+    "IMPL-002",
+    "IMPL-003",
+    "IMPL-004"
+  ],
+  "blocks": [],
+  "acceptance_criteria": [
+    "完整处理流程正常工作",
+    "输出图像质量正确",
+    "性能无明显下降",
+    "错误处理完善"
+  ],
+  "status_history": [
+    {
+      "from": "pending",
+      "to": "completed",
+      "changed_at": "2026-02-01T06:17:28.504Z"
+    }
+  ]
+}

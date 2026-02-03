@@ -1,0 +1,84 @@
+{
+  "project_structure": "React 19 + Vite + Tailwind CSS 4 application with layered architecture. UI layer consists of: App.tsx (main orchestrator with mode switching), components/ (reusable UI: UploadStatusBar, UploadDrawer, Sidebar, ImagePreview, BatchProcessor). Current upload flow uses UploadStatusBar as collapsed summary bar + UploadDrawer as bottom sheet modal. Sidebar demonstrates collapsible panel with overlay mode for tablet. Toast notifications use fixed positioning with z-50.",
+
+  "relevant_files": [
+    {
+      "path": "src/App.tsx",
+      "relevance": 0.95,
+      "rationale": "Main orchestrator managing isDrawerOpen state, UploadStatusBar and UploadDrawer rendering, global paste handler, and layout structure. Must be modified to replace UploadStatusBar with floating button."
+    },
+    {
+      "path": "src/components/UploadStatusBar.tsx",
+      "relevance": 0.90,
+      "rationale": "Current upload summary component (339 lines) that occupies layout space. Contains drag-drop logic, file preview hooks, and status display. Will be replaced or heavily modified into floating button."
+    },
+    {
+      "path": "src/components/UploadDrawer.tsx",
+      "relevance": 0.85,
+      "rationale": "Existing bottom-sheet modal pattern (310 lines) with overlay, animation, ESC key handling, body scroll lock. Provides reference implementation for popup behavior. May need position adjustment for floating trigger."
+    },
+    {
+      "path": "src/components/Sidebar.tsx",
+      "relevance": 0.60,
+      "rationale": "Demonstrates collapsible UI pattern with overlayMode for tablet (fixed positioning, z-40). IconButton component pattern reusable for floating button. Shows responsive collapse behavior."
+    },
+    {
+      "path": "src/components/ImagePreview.tsx",
+      "relevance": 0.45,
+      "rationale": "Contains fullscreen modal pattern (fixed inset-0 z-50) with backdrop. Reference for modal z-index layering and animation patterns."
+    }
+  ],
+
+  "patterns": "1. **Modal/Drawer Pattern** (UploadDrawer.tsx:244-308): Uses fixed inset-0 z-50 container with bg-black/40 overlay, shouldRender state for unmount delay (300ms), body scroll lock via overflow:hidden, ESC key listener. Animation via translate-y-full/translate-y-0 with duration-300.\n\n2. **Floating Overlay Pattern** (Sidebar.tsx:114-116): Uses 'fixed left-4 top-[120px] z-40 shadow-xl' for tablet overlay mode. Demonstrates fixed positioning with explicit coordinates.\n\n3. **Icon Button Pattern** (Sidebar.tsx:29-46): Reusable IconButton component with w-10 h-10 rounded-xl, hover states, disabled states, active states. Perfect for floating upload trigger.\n\n4. **Status Indicator Pattern** (UploadStatusBar.tsx:83-143): StatusPill component with color-coded states (empty/partial/complete/uploading/error). Can be condensed into floating button badge.\n\n5. **File Preview Hook** (UploadStatusBar.tsx:20-56): useFilePreview custom hook for FileReader-based preview generation with cleanup. Reusable for floating button thumbnail.\n\n6. **Toast Pattern** (App.tsx:378-396): Fixed top-20 left-1/2 -translate-x-1/2 z-50 with animate-fade-in. Reference for floating element positioning.",
+
+  "dependencies": "Internal: useState, useCallback, useEffect, useRef from React 19. useId for unique input IDs. Custom hooks: useFilePreview (file preview generation), useScreenSize (responsive breakpoints). External: Tailwind CSS 4 for styling (fixed, absolute, z-index utilities, transition classes). No external modal/popup library - all custom implementations.",
+
+  "integration_points": "1. **App.tsx:103** - isDrawerOpen state controls drawer visibility, will control popup from floating button\n2. **App.tsx:448-457** - UploadStatusBar rendering location in single mode, replace with floating button\n3. **App.tsx:733-742** - UploadDrawer rendering at root level, may need position adjustment\n4. **App.tsx:197-238** - Global paste handler opens drawer, should also work with floating popup\n5. **App.tsx:346-357** - ESC key handler for drawer/overlay, extend for floating popup\n6. **App.tsx:364-370** - handleClearUploads callback, connect to floating button clear action\n7. **UploadStatusBar.tsx:192-339** - Main component export, refactor into FloatingUploadButton\n8. **UploadDrawer.tsx:190-309** - Drawer component, may need anchor point adjustment for floating trigger",
+
+  "constraints": "1. **Z-index Hierarchy**: Header z-10, sidebar overlay z-30/z-40, modals/drawers z-50, toast z-50. Floating button should use z-40 (below modals, above content).\n2. **Responsive Behavior**: Must work across mobile/tablet/desktop (useScreenSize hook). Consider position adjustment per breakpoint.\n3. **Existing Interactions**: Preserve drag-drop to open drawer, Ctrl+V paste, ESC to close. Floating button must not interfere.\n4. **Animation Consistency**: Use existing duration-200/duration-300 transition patterns, ease-out timing.\n5. **Accessibility**: Maintain keyboard navigation (Enter/Space to activate), aria-labels, focus management.\n6. **State Persistence**: Upload files state (originalFile, annotatedFile) managed in App.tsx, floating button is display-only trigger.\n7. **Single Mode Only**: Floating button only appears in mode === 'single', batch mode has separate BatchProcessor.",
+
+  "clarification_needs": [
+    {
+      "question": "Where should the floating upload button be positioned on screen?",
+      "context": "Current UploadStatusBar is inline in content flow. Floating button needs fixed position. Common patterns: bottom-right corner (FAB style), bottom-center, or near header. Position affects visibility and interaction with other UI elements.",
+      "options": [
+        "Bottom-right corner (fixed right-6 bottom-6) - FAB style, always visible",
+        "Bottom-center (fixed bottom-6 left-1/2 -translate-x-1/2) - centered, prominent",
+        "Top-right below header (fixed right-6 top-20) - near controls, less intrusive",
+        "Left side near sidebar (fixed left-6 bottom-6) - grouped with settings"
+      ],
+      "recommended": 0
+    },
+    {
+      "question": "What should the floating button display when files are selected?",
+      "context": "Current UploadStatusBar shows file thumbnails, names, and status pill. Floating button has limited space. Need to decide information density vs. simplicity.",
+      "options": [
+        "Minimal: Icon only with colored badge indicator (green=ready, yellow=partial, gray=empty)",
+        "Compact: Small thumbnail preview of first selected file + badge",
+        "Expanded: Two mini thumbnails (original + annotated) stacked vertically",
+        "Tooltip: Icon with badge, hover shows full status details"
+      ],
+      "recommended": 0
+    },
+    {
+      "question": "Should the popup be the existing bottom drawer or a new centered modal?",
+      "context": "UploadDrawer is already implemented as bottom sheet. Could reuse as-is or create new centered modal for better desktop experience. Bottom sheet is mobile-friendly, centered modal is desktop-friendly.",
+      "options": [
+        "Reuse existing UploadDrawer (bottom sheet) - minimal code changes",
+        "New centered modal - better for desktop, more work",
+        "Adaptive: bottom sheet on mobile, centered modal on desktop"
+      ],
+      "recommended": 0
+    }
+  ],
+
+  "_metadata": {
+    "timestamp": "2026-02-01T12:00:00.000Z",
+    "task_description": "将上传区域不要占用空间，将其折叠悬浮在窗口上，需要上传时点击图标弹出上传的弹窗",
+    "source": "cli-explore-agent",
+    "exploration_angle": "ui-patterns",
+    "exploration_index": 1,
+    "total_explorations": 2,
+    "duration_seconds": 45
+  }
+}

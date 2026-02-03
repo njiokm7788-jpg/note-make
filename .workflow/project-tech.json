@@ -1,0 +1,114 @@
+{
+  "project_name": "笔记图片处理",
+  "initialized_at": "2026-01-27T00:41:00.000Z",
+  "overview": {
+    "description": "React-based web application for overlaying AI annotations on original note images. Extracts annotation layers from AI-processed images and composites them with high-quality originals, supporting both single and batch processing modes.",
+    "technology_stack": {
+      "languages": [
+        {
+          "name": "TypeScript",
+          "file_count": 938,
+          "primary": true
+        },
+        {
+          "name": "JavaScript",
+          "file_count": 2988,
+          "primary": false
+        },
+        {
+          "name": "Python",
+          "file_count": 1,
+          "primary": false
+        }
+      ],
+      "frameworks": [
+        "React 19.0.0",
+        "Vite 6.0.5",
+        "Tailwind CSS 4.0.0"
+      ],
+      "build_tools": [
+        "npm",
+        "Vite",
+        "TypeScript 5.6.2",
+        "ESLint 9.17.0"
+      ],
+      "test_frameworks": []
+    },
+    "architecture": {
+      "style": "Layered Architecture with Component-Based UI",
+      "layers": [
+        "presentation",
+        "business-logic",
+        "utility"
+      ],
+      "patterns": [
+        "Component Pattern",
+        "React Hooks Pattern",
+        "Utility Functions Pattern",
+        "State Management Pattern"
+      ]
+    },
+    "key_components": [
+      {
+        "name": "App",
+        "path": "src/App.tsx",
+        "description": "Main application component managing mode switching (single/batch), file state, processing options, and preview generation. Orchestrates the entire user workflow.",
+        "importance": "high"
+      },
+      {
+        "name": "ImageProcessor",
+        "path": "src/utils/imageProcessor.ts",
+        "description": "Core image processing engine implementing pixel-level difference detection, annotation layer extraction, and alpha blending algorithms. Handles image scaling and format conversion.",
+        "importance": "high"
+      },
+      {
+        "name": "FileUtils",
+        "path": "src/utils/fileUtils.ts",
+        "description": "File handling utilities for single and batch operations, including ZIP packaging with JSZip, file naming, validation, and download management.",
+        "importance": "high"
+      },
+      {
+        "name": "BatchProcessor",
+        "path": "src/components/BatchProcessor.tsx",
+        "description": "Batch processing component with drag-and-drop file upload, automatic file pairing based on naming patterns, progress tracking, and bulk download functionality.",
+        "importance": "high"
+      },
+      {
+        "name": "ImageUploader",
+        "path": "src/components/ImageUploader.tsx",
+        "description": "Reusable file upload component with drag-and-drop support, file validation, and preview display for single image selection.",
+        "importance": "medium"
+      },
+      {
+        "name": "ProcessingPanel",
+        "path": "src/components/ProcessingPanel.tsx",
+        "description": "Control panel component for adjusting processing parameters (threshold, opacity, color inversion) and triggering preview/download actions.",
+        "importance": "medium"
+      },
+      {
+        "name": "ImagePreview",
+        "path": "src/components/ImagePreview.tsx",
+        "description": "Image preview component displaying processed results with titles and subtitles, used in the 4-panel preview grid.",
+        "importance": "medium"
+      }
+    ]
+  },
+  "features": [],
+  "development_index": {
+    "feature": [],
+    "enhancement": [],
+    "bugfix": [],
+    "refactor": [],
+    "docs": []
+  },
+  "statistics": {
+    "total_features": 0,
+    "total_sessions": 0,
+    "last_updated": "2026-01-27T00:41:00.000Z"
+  },
+  "_metadata": {
+    "initialized_by": "cli-explore-agent",
+    "analysis_timestamp": "2026-01-27T00:41:00.000Z",
+    "analysis_mode": "deep-scan"
+  }
+}

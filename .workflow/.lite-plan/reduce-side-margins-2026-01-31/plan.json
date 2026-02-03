@@ -1,0 +1,55 @@
+{
+  "summary": "移除界面左右大面积空白，将内容区域从 max-w-7xl (1280px) 扩展到 max-w-screen-2xl (1536px) 或更宽，充分利用大屏幕空间。",
+  "approach": "修改 App.tsx 中的 max-width 限制，将 Header、Main 和 Footer 的容器宽度从 max-w-7xl 改为 max-w-screen-2xl，同时保持响应式设计。",
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "扩展内容区域最大宽度",
+      "scope": "src/App.tsx",
+      "action": "Update",
+      "description": "将 Header、Main Content 和 Footer 的 max-w-7xl 改为 max-w-screen-2xl，使内容在大屏幕上占据更多空间。",
+      "modification_points": [
+        {
+          "file": "src/App.tsx",
+          "target": "line 187",
+          "change": "Header 容器: max-w-7xl → max-w-screen-2xl"
+        },
+        {
+          "file": "src/App.tsx",
+          "target": "line 236",
+          "change": "Main 容器: max-w-7xl → max-w-screen-2xl"
+        },
+        {
+          "file": "src/App.tsx",
+          "target": "line 498",
+          "change": "Footer 容器: max-w-7xl → max-w-screen-2xl"
+        }
+      ],
+      "implementation": [
+        "在 App.tsx 中搜索 max-w-7xl",
+        "将 line 187 的 Header 容器 max-w-7xl 改为 max-w-screen-2xl",
+        "将 line 236 的 Main 容器 max-w-7xl 改为 max-w-screen-2xl",
+        "将 line 498 的 Footer 容器 max-w-7xl 改为 max-w-screen-2xl"
+      ],
+      "reference": {
+        "pattern": "Tailwind CSS max-width utilities",
+        "files": ["src/App.tsx"],
+        "examples": "max-w-screen-2xl = 1536px, max-w-full = 100%"
+      },
+      "acceptance": [
+        "所有 max-w-7xl 已替换为 max-w-screen-2xl",
+        "界面在 1920px 宽度显示器上左右空白明显减少",
+        "响应式布局在小屏幕上仍然正常工作"
+      ]
+    }
+  ],
+  "focus_paths": ["src/App.tsx"],
+  "estimated_time": "5 minutes",
+  "recommended_execution": "Agent",
+  "complexity": "Low",
+  "_metadata": {
+    "timestamp": "2026-01-31T12:00:00+08:00",
+    "source": "direct-planning",
+    "planning_mode": "direct"
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "id": "IMPL-009",
+  "title": "添加色块颜色选择器",
+  "phase": 2,
+  "priority": "high",
+  "effort": "M",
+  "status": "completed",
+  "file": "src/components/Sidebar.tsx",
+  "description": "添加色块颜色选择器 UI，支持预设颜色和自定义颜色",
+  "ui_design": {
+    "layout": "色块颜色选择区域，包含预设色和自定义选项",
+    "preset_colors": [
+      {
+        "name": "黄色",
+        "hex": "#FFFF00"
+      },
+      {
+        "name": "绿色",
+        "hex": "#90EE90"
+      },
+      {
+        "name": "粉色",
+        "hex": "#FFB6C1"
+      },
+      {
+        "name": "蓝色",
+        "hex": "#87CEEB"
+      },
+      {
+        "name": "橙色",
+        "hex": "#FFA94D"
+      },
+      {
+        "name": "紫色",
+        "hex": "#B197FC"
+      }
+    ],
+    "custom_option": "点击 + 按钮打开颜色选择器"
+  },
+  "implementation": {
+    "state": "无需额外 state，直接使用 options.blockColor",
+    "handler": "handleOptionChange({ ...options, blockColor: newColor })",
+    "color_input": "使用 <input type='color'> 实现自定义颜色"
+  },
+  "code_template": "<!-- 色块颜色选择器 -->\n<div className=\"space-y-2\">\n  <label className=\"text-xs font-medium text-slate-600\">色块颜色</label>\n  <div className=\"flex flex-wrap gap-2\">\n    {PRESET_COLORS.map((color) => (\n      <button\n        key={color.hex}\n        type=\"button\"\n        onClick={() => handleOptionChange({ ...options, blockColor: color.hex })}\n        className={`w-8 h-8 rounded-lg border-2 transition-all ${\n          options.blockColor === color.hex\n            ? 'border-primary-500 scale-110'\n            : 'border-slate-200 hover:border-slate-300'\n        }`}\n        style={{ backgroundColor: color.hex }}\n        title={color.name}\n      />\n    ))}\n    <label className=\"w-8 h-8 rounded-lg border-2 border-dashed border-slate-300 flex items-center justify-center cursor-pointer hover:border-slate-400\">\n      <input\n        type=\"color\"\n        value={options.blockColor}\n        onChange={(e) => handleOptionChange({ ...options, blockColor: e.target.value })}\n        className=\"sr-only\"\n      />\n      <svg className=\"w-4 h-4 text-slate-400\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n        <path strokeLinecap=\"round\" strokeLinejoin=\"round\" strokeWidth={2} d=\"M12 4v16m8-8H4\" />\n      </svg>\n    </label>\n  </div>\n  <div className=\"flex items-center gap-2 text-xs text-slate-500\">\n    <span>当前:</span>\n    <span className=\"w-4 h-4 rounded\" style={{ backgroundColor: options.blockColor }} />\n    <span className=\"font-mono\">{options.blockColor}</span>\n  </div>\n</div>",
+  "constants_to_add": "const PRESET_COLORS = [\n  { name: '黄色', hex: '#FFFF00' },\n  { name: '绿色', hex: '#90EE90' },\n  { name: '粉色', hex: '#FFB6C1' },\n  { name: '蓝色', hex: '#87CEEB' },\n  { name: '橙色', hex: '#FFA94D' },\n  { name: '紫色', hex: '#B197FC' },\n];",
+  "dependencies": [
+    "IMPL-001",
+    "IMPL-008"
+  ],
+  "blocks": [],
+  "acceptance_criteria": [
+    "预设颜色按钮正常显示",
+    "点击预设颜色更新 options.blockColor",
+    "自定义颜色选择器正常工作",
+    "当前颜色正确显示",
+    "选中状态视觉反馈正确"
+  ],
+  "status_history": [
+    {
+      "from": "pending",
+      "to": "completed",
+      "changed_at": "2026-02-01T06:17:28.510Z"
+    }
+  ]
+}

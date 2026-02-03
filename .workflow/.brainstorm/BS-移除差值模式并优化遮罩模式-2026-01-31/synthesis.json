@@ -1,0 +1,136 @@
+{
+  "session_id": "BS-移除差值模式并优化遮罩模式-2026-01-31",
+  "topic": "移除差值模式并优化遮罩模式的图像处理方案",
+  "completed": "2026-01-31T10:10:00+08:00",
+  "total_rounds": 3,
+
+  "top_ideas": [
+    {
+      "title": "边缘检测智能膨胀",
+      "description": "改进 extractTextMask 的 maskExpand 逻辑，使用 Sobel 算子进行边缘检测，沿检测到的边缘进行精确膨胀，而非简单的圆形膨胀。这样可以使遮罩更贴合文字的实际轮廓，减少对背景的误伤。",
+      "source_perspective": "gemini",
+      "score": 7,
+      "novelty": 3,
+      "feasibility": 4,
+      "key_strengths": [
+        "显著提升遮罩精度",
+        "减少手动调整 maskExpand 的需求",
+        "可在现有架构上实现",
+        "无需引入外部依赖"
+      ],
+      "main_challenges": [
+        "边缘检测算法增加计算量",
+        "需要调优边缘检测参数",
+        "对模糊文字边缘效果可能有限"
+      ],
+      "next_steps": [
+        "实现 Sobel 边缘检测函数",
+        "修改 extractTextMask 使用边缘引导膨胀",
+        "添加边缘强度阈值参数",
+        "测试不同类型图像的效果"
+      ]
+    },
+    {
+      "title": "渐进式迁移策略",
+      "description": "保持双模式并存，先优化遮罩模式算法，收集用户反馈后逐步移除差值模式。这是风险最低的实施路径。",
+      "source_perspective": "qwen",
+      "score": 8,
+      "novelty": 2,
+      "feasibility": 5,
+      "key_strengths": [
+        "风险低，可回滚",
+        "允许充分测试",
+        "用户有适应时间"
+      ],
+      "main_challenges": [
+        "需要维护两套代码一段时间",
+        "迁移周期较长"
+      ],
+      "next_steps": [
+        "优化遮罩模式算法",
+        "将遮罩模式设为默认",
+        "收集用户反馈",
+        "确认无问题后移除差值模式"
+      ]
+    }
+  ],
+
+  "parked_ideas": [
+    {
+      "title": "颜色感知型文字检测",
+      "reason_parked": "用户未选择，但技术价值高",
+      "potential_future_trigger": "当遇到彩色文字检测需求时"
+    },
+    {
+      "title": "智能参数预设",
+      "reason_parked": "用户未选择",
+      "potential_future_trigger": "当用户反馈参数调整困难时"
+    },
+    {
+      "title": "ROI 区域选择",
+      "reason_parked": "增加 UI 复杂度",
+      "potential_future_trigger": "当处理复杂布局图像需求增加时"
+    },
+    {
+      "title": "AI 语义分割",
+      "reason_parked": "技术门槛高，当前不可行",
+      "potential_future_trigger": "当浏览器 AI 能力成熟时"
+    }
+  ],
+
+  "key_insights": [
+    "遮罩模式的核心优势是直接检测原图文字区域，不依赖像素差值",
+    "当前圆形膨胀是主要的精度瓶颈",
+    "边缘检测可以显著提升膨胀精度",
+    "渐进式迁移是最安全的实施策略"
+  ],
+
+  "recommendations": {
+    "primary": "实施边缘检测智能膨胀 + 渐进式迁移策略",
+    "alternatives": [
+      "如果边缘检测效果不佳，可考虑颜色感知检测",
+      "如果用户反馈参数复杂，可添加智能预设"
+    ],
+    "not_recommended": [
+      "直接移除差值模式（风险高）",
+      "立即引入 AI 模型（技术不成熟）"
+    ]
+  },
+
+  "follow_up": [
+    {
+      "type": "implementation",
+      "summary": "实现 Sobel 边缘检测和边缘引导膨胀算法"
+    },
+    {
+      "type": "testing",
+      "summary": "在多种图像类型上测试新算法效果"
+    },
+    {
+      "type": "migration",
+      "summary": "将遮罩模式设为默认，观察用户反馈"
+    }
+  ],
+
+  "ui_optimization": {
+    "clarification_completed": "2026-01-31",
+    "participating_roles": ["ui-designer"],
+    "enhancements_applied": [
+      "EP-001: 上传区水平布局",
+      "EP-002: 压缩组件间距",
+      "EP-003: 预设按钮单行化",
+      "EP-004: Header 高度压缩"
+    ],
+    "clarifications": {
+      "空状态处理": "保持现状",
+      "高级设置默认状态": "默认折叠",
+      "实时预览开关位置": "合并到标题"
+    },
+    "expected_improvements": {
+      "上传区高度": "420px → 180px (-57%)",
+      "设置面板高度": "450px → 250px (-44%)",
+      "总体高度": "1080px → 650px (-40%)",
+      "滚动距离": "200-300px → 0px (-100%)"
+    }
+  }
+}

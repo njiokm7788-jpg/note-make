@@ -1,0 +1,41 @@
+{
+  "id": "IMPL-004",
+  "title": "重写 compositeImages() 合成逻辑",
+  "phase": 1,
+  "priority": "critical",
+  "effort": "M",
+  "status": "completed",
+  "file": "src/utils/imageProcessor.ts",
+  "description": "重写图像合成逻辑：文字区域用清晰原图，非文字区域用带色块的模糊图",
+  "implementation": {
+    "function_name": "compositeImages",
+    "signature": "function compositeImages(originalData: ImageData, colorBlockData: ImageData, textMask: boolean[]): ImageData",
+    "algorithm": "遍历像素，根据遮罩选择来源图像",
+    "logic": {
+      "text_region": "使用清晰原图像素",
+      "non_text_region": "使用带色块的模糊图像素"
+    }
+  },
+  "code_template": "/**\n * 合成最终图像\n * @param originalData 清晰原图\n * @param colorBlockData 带色块的模糊标注图\n * @param textMask 文字区域遮罩\n */\nfunction compositeImages(\n  originalData: ImageData,\n  colorBlockData: ImageData,\n  textMask: boolean[]\n): ImageData {\n  const { width, height } = originalData;\n  const output = new ImageData(width, height);\n  const original = originalData.data;\n  const colorBlock = colorBlockData.data;\n  \n  for (let i = 0; i < width * height; i++) {\n    const idx = i * 4;\n    if (textMask[i]) {\n      // 文字区域：使用清晰原图\n      output.data[idx] = original[idx];\n      output.data[idx + 1] = original[idx + 1];\n      output.data[idx + 2] = original[idx + 2];\n    } else {\n      // 非文字区域：使用带色块的模糊图\n      output.data[idx] = colorBlock[idx];\n      output.data[idx + 1] = colorBlock[idx + 1];\n      output.data[idx + 2] = colorBlock[idx + 2];\n    }\n    output.data[idx + 3] = 255;\n  }\n  \n  return output;\n}",
+  "key_change": "旧逻辑是混合原图和标注图，新逻辑是选择性使用原图或带色块的模糊图",
+  "dependencies": [
+    "IMPL-001",
+    "IMPL-003"
+  ],
+  "blocks": [
+    "IMPL-005"
+  ],
+  "acceptance_criteria": [
+    "文字区域显示清晰原图",
+    "非文字区域显示带色块的模糊图",
+    "边界过渡自然",
+    "输出图像尺寸正确"
+  ],
+  "status_history": [
+    {
+      "from": "pending",
+      "to": "completed",
+      "changed_at": "2026-02-01T06:17:28.503Z"
+    }
+  ]
+}

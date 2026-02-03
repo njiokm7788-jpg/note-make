@@ -1,0 +1,76 @@
+{
+  "project_structure": "React SPA with layered architecture: App.tsx as central orchestrator managing upload state (originalFile, annotatedFile, isDrawerOpen), Sidebar for processing options, UploadStatusBar as current upload trigger, and UploadDrawer as modal upload panel. State flows unidirectionally from App.tsx to child components via props and callbacks.",
+  "relevant_files": [
+    {
+      "path": "src/App.tsx",
+      "relevance": 0.95,
+      "rationale": "Central state management for upload files (originalFile, annotatedFile) and drawer visibility (isDrawerOpen). Contains paste event handler, keyboard shortcuts, and renders UploadStatusBar + UploadDrawer. Primary integration point for floating button state."
+    },
+    {
+      "path": "src/components/UploadStatusBar.tsx",
+      "relevance": 0.90,
+      "rationale": "Current upload trigger component that occupies layout space. Must be replaced/modified to become a floating button. Contains drag-and-drop handling, status display logic, and onOpenDrawer callback integration."
+    },
+    {
+      "path": "src/components/UploadDrawer.tsx",
+      "relevance": 0.85,
+      "rationale": "Existing modal upload panel with isOpen/onClose props pattern. Already implements overlay, animation, ESC key handling, and body scroll lock. Can be reused as-is for the popup functionality."
+    },
+    {
+      "path": "src/components/Sidebar.tsx",
+      "relevance": 0.50,
+      "rationale": "Reference for floating/overlay UI pattern with collapsed state, overlay backdrop, and responsive behavior. Provides design pattern for floating button positioning."
+    },
+    {
+      "path": "src/components/ImageUploader.tsx",
+      "relevance": 0.40,
+      "rationale": "Original upload component with drag-drop logic. May be deprecated in favor of UploadDrawer's UploadDropZone, but provides reference for file handling patterns."
+    }
+  ],
+  "patterns": "1. Modal/Drawer pattern: isOpen boolean + onClose callback (UploadDrawer:11-18). 2. State lifting: File state managed in App.tsx, passed down via props (App.tsx:101-103). 3. Floating overlay: fixed positioning with z-index layering (Sidebar.tsx:114-116). 4. Drag-drop integration: dragEnter/Over/Leave/Drop handlers with depth tracking (UploadStatusBar.tsx:208-248). 5. Keyboard shortcuts: Global event listeners with input element filtering (App.tsx:320-362).",
+  "dependencies": "Internal: UploadStatusBar depends on UploadStatusBarProps interface (originalFile, annotatedFile, onOpenDrawer, onClear). UploadDrawer depends on UploadDrawerProps (isOpen, onClose, file states, select callbacks). App.tsx imports both components and manages their shared state. External: React hooks (useState, useCallback, useEffect, useRef), Tailwind CSS for styling.",
+  "integration_points": "1. App.tsx:103 - isDrawerOpen state controls UploadDrawer visibility, will also control floating button active state. 2. App.tsx:449-456 - UploadStatusBar render location, must be replaced with floating button component. 3. App.tsx:733-742 - UploadDrawer render, already positioned correctly for modal behavior. 4. App.tsx:197-238 - Global paste handler opens drawer and sets files, must continue working with new floating button. 5. App.tsx:364-370 - handleClearUploads callback, should be accessible from floating button. 6. UploadStatusBar.tsx:192-199 - Props interface defines required callbacks (onOpenDrawer, onClear) that floating button must implement.",
+  "constraints": "1. Must preserve existing file state management in App.tsx (originalFile, annotatedFile). 2. Must maintain paste-to-upload functionality (App.tsx:197-238). 3. Must keep UploadDrawer component unchanged - it already works as modal. 4. Floating button must not interfere with Sidebar overlay mode (z-index coordination). 5. Must support drag-drop to open drawer (current UploadStatusBar behavior). 6. Must show upload status (empty/partial/complete) in compact floating button form.",
+  "clarification_needs": [
+    {
+      "question": "Where should the floating upload button be positioned on the screen?",
+      "context": "The current UploadStatusBar is positioned in the main content area below the header. A floating button needs a fixed position that doesn't obstruct content viewing or conflict with the Sidebar (which uses fixed left positioning in tablet overlay mode).",
+      "options": [
+        "Bottom-right corner (common FAB position, away from Sidebar)",
+        "Bottom-center (centered, prominent but may obstruct preview)",
+        "Top-right corner (near header, quick access but may conflict with future features)",
+        "Left side below Sidebar (consistent with existing UI flow)"
+      ],
+      "recommended": 0
+    },
+    {
+      "question": "Should the floating button show upload status indicators (file count, thumbnails)?",
+      "context": "The current UploadStatusBar shows detailed status (StatusPill, FileThumb previews, progress bar). A floating button has limited space. Need to decide how much status information to display.",
+      "options": [
+        "Minimal: Icon only with color-coded status dot",
+        "Compact: Icon + badge showing file count (0/1/2)",
+        "Rich: Small thumbnails visible on hover/expanded state"
+      ],
+      "recommended": 1
+    },
+    {
+      "question": "Should drag-drop anywhere on the page still open the upload drawer?",
+      "context": "Currently UploadStatusBar handles drag-drop to auto-open the drawer. With a floating button, the drag target area changes. Need to decide if global drag-drop should be preserved.",
+      "options": [
+        "Yes, keep global drag-drop (drag anywhere opens drawer)",
+        "No, only drag to floating button opens drawer",
+        "Hybrid: Global drag highlights button, drop on button opens drawer"
+      ],
+      "recommended": 0
+    }
+  ],
+  "_metadata": {
+    "timestamp": "2026-02-01T12:00:00.000Z",
+    "task_description": "将上传区域不要占用空间，将其折叠悬浮在窗口上，需要上传时点击图标弹出上传的弹窗",
+    "source": "cli-explore-agent",
+    "exploration_angle": "integration-points",
+    "exploration_index": 2,
+    "total_explorations": 2,
+    "duration_seconds": 45
+  }
+}

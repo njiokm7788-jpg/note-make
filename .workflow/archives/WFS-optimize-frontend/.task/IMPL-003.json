@@ -1,0 +1,42 @@
+{
+  "task_id": "IMPL-003",
+  "title": "简化预览区域",
+  "priority": "P1",
+  "status": "completed",
+  "description": "优化预览区域，默认只显示最终结果，提供可选的对比视图",
+  "files": [
+    "src/App.tsx"
+  ],
+  "implementation_steps": [
+    {
+      "step": 1,
+      "description": "添加视图切换状态",
+      "details": "添加 showComparison 状态控制视图模式"
+    },
+    {
+      "step": 2,
+      "description": "实现默认简化视图",
+      "details": "默认只显示最终结果大图和下载按钮"
+    },
+    {
+      "step": 3,
+      "description": "实现对比视图切换",
+      "details": "添加'查看对比'按钮，点击展开四宫格视图"
+    }
+  ],
+  "acceptance_criteria": [
+    "默认显示最终结果大图",
+    "可切换到对比视图",
+    "下载按钮易于发现"
+  ],
+  "dependencies": [
+    "IMPL-001"
+  ],
+  "status_history": [
+    {
+      "from": "pending",
+      "to": "completed",
+      "changed_at": "2026-01-30T17:35:24.565Z"
+    }
+  ]
+}

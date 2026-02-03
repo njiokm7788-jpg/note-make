@@ -1,0 +1,33 @@
+{
+  "session_id": "drawer-sidebar-layout-refactor-2026-01-31",
+  "task_description": "基于 .workflow/.brainstorming/ux-expert/ 的设计规格，实现抽屉式上传区 + 侧边栏设置布局重构",
+  "timestamp": "2026-01-31T12:00:00+08:00",
+  "complexity": "High",
+  "exploration_count": 4,
+  "explorations": [
+    {
+      "angle": "patterns",
+      "file": "exploration-patterns.json",
+      "path": ".workflow/.lite-plan/drawer-sidebar-layout-refactor-2026-01-31/exploration-patterns.json",
+      "index": 1
+    },
+    {
+      "angle": "integration-points",
+      "file": "exploration-integration-points.json",
+      "path": ".workflow/.lite-plan/drawer-sidebar-layout-refactor-2026-01-31/exploration-integration-points.json",
+      "index": 2
+    },
+    {
+      "angle": "dependencies",
+      "file": "exploration-dependencies.json",
+      "path": ".workflow/.lite-plan/drawer-sidebar-layout-refactor-2026-01-31/exploration-dependencies.json",
+      "index": 3
+    },
+    {
+      "angle": "architecture",
+      "file": "exploration-architecture.json",
+      "path": ".workflow/.lite-plan/drawer-sidebar-layout-refactor-2026-01-31/exploration-architecture.json",
+      "index": 4
+    }
+  ]
+}

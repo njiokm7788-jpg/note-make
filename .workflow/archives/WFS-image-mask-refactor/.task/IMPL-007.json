@@ -1,0 +1,88 @@
+{
+  "id": "IMPL-007",
+  "title": "更新预设方案",
+  "phase": 1,
+  "priority": "high",
+  "effort": "S",
+  "status": "completed",
+  "file": "src/utils/imageProcessor.ts",
+  "description": "替换现有预设为新的高亮预设方案",
+  "old_presets": [
+    {
+      "id": "standard",
+      "name": "标准模式"
+    },
+    {
+      "id": "light",
+      "name": "轻量标注"
+    },
+    {
+      "id": "emphasis",
+      "name": "强调标注"
+    }
+  ],
+  "new_presets": [
+    {
+      "id": "highlight-yellow",
+      "name": "黄色高亮",
+      "description": "经典荧光笔效果",
+      "options": {
+        "textThreshold": 200,
+        "maskExpand": 2,
+        "blockColor": "#FFFF00",
+        "blockOpacity": 0.3
+      }
+    },
+    {
+      "id": "highlight-green",
+      "name": "绿色高亮",
+      "description": "清新标记效果",
+      "options": {
+        "textThreshold": 200,
+        "maskExpand": 2,
+        "blockColor": "#90EE90",
+        "blockOpacity": 0.35
+      }
+    },
+    {
+      "id": "highlight-pink",
+      "name": "粉色高亮",
+      "description": "柔和标记效果",
+      "options": {
+        "textThreshold": 200,
+        "maskExpand": 2,
+        "blockColor": "#FFB6C1",
+        "blockOpacity": 0.35
+      }
+    },
+    {
+      "id": "highlight-blue",
+      "name": "蓝色高亮",
+      "description": "冷静专业效果",
+      "options": {
+        "textThreshold": 200,
+        "maskExpand": 2,
+        "blockColor": "#87CEEB",
+        "blockOpacity": 0.3
+      }
+    }
+  ],
+  "code_template": "export const presets: Preset[] = [\n  {\n    id: 'highlight-yellow',\n    name: '黄色高亮',\n    description: '经典荧光笔效果',\n    options: {\n      textThreshold: 200,\n      maskExpand: 2,\n      blockColor: '#FFFF00',\n      blockOpacity: 0.3,\n    }\n  },\n  {\n    id: 'highlight-green',\n    name: '绿色高亮',\n    description: '清新标记效果',\n    options: {\n      textThreshold: 200,\n      maskExpand: 2,\n      blockColor: '#90EE90',\n      blockOpacity: 0.35,\n    }\n  },\n  {\n    id: 'highlight-pink',\n    name: '粉色高亮',\n    description: '柔和标记效果',\n    options: {\n      textThreshold: 200,\n      maskExpand: 2,\n      blockColor: '#FFB6C1',\n      blockOpacity: 0.35,\n    }\n  },\n  {\n    id: 'highlight-blue',\n    name: '蓝色高亮',\n    description: '冷静专业效果',\n    options: {\n      textThreshold: 200,\n      maskExpand: 2,\n      blockColor: '#87CEEB',\n      blockOpacity: 0.3,\n    }\n  }\n];",
+  "dependencies": [
+    "IMPL-001"
+  ],
+  "blocks": [],
+  "acceptance_criteria": [
+    "旧预设已移除",
+    "新预设已添加",
+    "预设选项符合新接口",
+    "默认预设为 highlight-yellow"
+  ],
+  "status_history": [
+    {
+      "from": "pending",
+      "to": "completed",
+      "changed_at": "2026-02-01T06:17:28.506Z"
+    }
+  ]
+}

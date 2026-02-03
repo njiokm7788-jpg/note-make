@@ -1,0 +1,56 @@
+{
+  "id": "IMPL-001",
+  "title": "重写 ProcessingOptions 接口",
+  "phase": 1,
+  "priority": "critical",
+  "effort": "S",
+  "status": "completed",
+  "file": "src/utils/imageProcessor.ts",
+  "description": "重写 ProcessingOptions 接口，移除旧字段，添加新字段",
+  "changes": {
+    "remove": [
+      "annotationOpacity: number",
+      "useEdgeGuidedExpand: boolean",
+      "edgeThreshold: number"
+    ],
+    "keep": [
+      "textThreshold: number",
+      "maskExpand: number"
+    ],
+    "add": [
+      "blockColor: string  // CSS颜色值, 默认: '#FFFF00'",
+      "blockOpacity: number  // 0-1, 默认: 0.3"
+    ]
+  },
+  "code_before": "export interface ProcessingOptions {\n  annotationOpacity: number;\n  textThreshold: number;\n  maskExpand: number;\n  useEdgeGuidedExpand: boolean;\n  edgeThreshold: number;\n}",
+  "code_after": "export interface ProcessingOptions {\n  /** 文字检测亮度阈值 (0-255) */\n  textThreshold: number;\n  /** 遮罩膨胀半径 (像素) */\n  maskExpand: number;\n  /** 色块颜色 (CSS 颜色值) */\n  blockColor: string;\n  /** 色块透明度 (0-1) */\n  blockOpacity: number;\n}",
+  "default_values": {
+    "textThreshold": 200,
+    "maskExpand": 2,
+    "blockColor": "#FFFF00",
+    "blockOpacity": 0.3
+  },
+  "dependencies": [],
+  "blocks": [
+    "IMPL-002",
+    "IMPL-003",
+    "IMPL-004",
+    "IMPL-007",
+    "IMPL-008",
+    "IMPL-009",
+    "IMPL-010",
+    "IMPL-011"
+  ],
+  "acceptance_criteria": [
+    "接口定义已更新",
+    "defaultProcessingOptions 已更新",
+    "TypeScript 编译无错误"
+  ],
+  "status_history": [
+    {
+      "from": "pending",
+      "to": "completed",
+      "changed_at": "2026-02-01T06:17:28.499Z"
+    }
+  ]
+}

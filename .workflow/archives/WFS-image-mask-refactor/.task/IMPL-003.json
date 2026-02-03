@@ -1,0 +1,37 @@
+{
+  "id": "IMPL-003",
+  "title": "实现 applyColorBlock() 色块叠加函数",
+  "phase": 1,
+  "priority": "critical",
+  "effort": "M",
+  "status": "completed",
+  "file": "src/utils/imageProcessor.ts",
+  "description": "在指定遮罩区域绘制色块，支持透明度混合",
+  "implementation": {
+    "function_name": "applyColorBlock",
+    "signature": "function applyColorBlock(imageData: ImageData, textMask: boolean[], color: string, opacity: number): ImageData",
+    "algorithm": "遍历像素，在 textMask 为 true 的区域应用色块混合",
+    "blend_formula": "output = original * (1 - opacity) + blockColor * opacity"
+  },
+  "code_template": "/**\n * 在遮罩区域应用色块\n * @param imageData 原始图像数据（模糊标注图）\n * @param textMask 文字区域遮罩\n * @param color CSS 颜色值\n * @param opacity 色块透明度 (0-1)\n */\nfunction applyColorBlock(\n  imageData: ImageData,\n  textMask: boolean[],\n  color: string,\n  opacity: number\n): ImageData {\n  const { width, height, data } = imageData;\n  const output = new ImageData(width, height);\n  const { r: cr, g: cg, b: cb } = parseColor(color);\n  \n  for (let i = 0; i < width * height; i++) {\n    const idx = i * 4;\n    if (textMask[i]) {\n      // 文字区域：应用色块混合\n      output.data[idx] = Math.round(data[idx] * (1 - opacity) + cr * opacity);\n      output.data[idx + 1] = Math.round(data[idx + 1] * (1 - opacity) + cg * opacity);\n      output.data[idx + 2] = Math.round(data[idx + 2] * (1 - opacity) + cb * opacity);\n    } else {\n      // 非文字区域：保持原样\n      output.data[idx] = data[idx];\n      output.data[idx + 1] = data[idx + 1];\n      output.data[idx + 2] = data[idx + 2];\n    }\n    output.data[idx + 3] = 255;\n  }\n  \n  return output;\n}",
+  "dependencies": [
+    "IMPL-001",
+    "IMPL-002"
+  ],
+  "blocks": [
+    "IMPL-004"
+  ],
+  "acceptance_criteria": [
+    "色块正确应用到遮罩区域",
+    "透明度混合效果正确",
+    "非遮罩区域保持不变",
+    "支持任意 CSS 颜色值"
+  ],
+  "status_history": [
+    {
+      "from": "pending",
+      "to": "completed",
+      "changed_at": "2026-02-01T06:17:28.502Z"
+    }
+  ]
+}

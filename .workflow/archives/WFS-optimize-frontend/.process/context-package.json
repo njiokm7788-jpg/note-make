@@ -1,0 +1,47 @@
+{
+  "session_id": "WFS-optimize-frontend",
+  "generated_at": "2026-01-31T00:00:00.000Z",
+  "project_context": {
+    "name": "笔记图片叠加工具",
+    "type": "React Web Application",
+    "framework": "React + TypeScript + Vite",
+    "styling": "Tailwind CSS",
+    "architecture_patterns": ["Functional Components", "React Hooks", "Utility Functions"]
+  },
+  "exploration_results": {
+    "aggregated_insights": {
+      "critical_files": [
+        {"path": "src/App.tsx", "reason": "主应用组件，需要添加粘贴事件监听和预设状态"},
+        {"path": "src/components/ProcessingPanel.tsx", "reason": "参数设置面板，需要添加预设选择UI"},
+        {"path": "src/components/ImageUploader.tsx", "reason": "上传组件，需要添加粘贴提示"},
+        {"path": "src/utils/imageProcessor.ts", "reason": "处理选项类型定义，可能需要扩展"}
+      ],
+      "constraints": [
+        "保持与现有组件的兼容性",
+        "不引入新的外部依赖",
+        "保留所有现有参数和功能",
+        "预设只是参数的快捷方式"
+      ],
+      "integration_points": [
+        "ProcessingOptions 接口需要支持预设ID",
+        "App.tsx 需要管理预设状态",
+        "全局粘贴事件需要与现有上传逻辑协调"
+      ]
+    }
+  },
+  "conflict_detection": {
+    "risk_level": "low",
+    "potential_conflicts": []
+  },
+  "prioritized_context": {
+    "must_read": [
+      "src/App.tsx",
+      "src/components/ProcessingPanel.tsx",
+      "src/components/ImageUploader.tsx"
+    ],
+    "should_read": [
+      "src/utils/imageProcessor.ts",
+      "src/components/ImagePreview.tsx"
+    ]
+  }
+}

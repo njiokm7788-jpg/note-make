@@ -1,0 +1,40 @@
+{
+  "id": "IMPL-010",
+  "title": "添加色块透明度滑块",
+  "phase": 2,
+  "priority": "high",
+  "effort": "S",
+  "status": "completed",
+  "file": "src/components/Sidebar.tsx",
+  "description": "添加色块透明度滑块，替换原有的标注透明度控件",
+  "ui_design": {
+    "label": "色块透明度",
+    "range": "0-100%",
+    "default": "30%",
+    "description": "调整文字区域色块的透明度"
+  },
+  "implementation": {
+    "value_mapping": "options.blockOpacity * 100 <-> slider value",
+    "handler": "handleOptionChange({ ...options, blockOpacity: value / 100 })"
+  },
+  "code_template": "<div className=\"space-y-2\">\n  <div className=\"flex items-center justify-between\">\n    <label className=\"text-xs font-medium text-slate-600\">\n      色块透明度\n    </label>\n    <span className=\"text-xs text-slate-500 font-mono\">\n      {Math.round(options.blockOpacity * 100)}%\n    </span>\n  </div>\n  <input\n    type=\"range\"\n    min=\"0\"\n    max=\"100\"\n    value={options.blockOpacity * 100}\n    onChange={(e) =>\n      handleOptionChange({\n        ...options,\n        blockOpacity: Number(e.target.value) / 100,\n      })\n    }\n    className=\"w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-500\"\n  />\n  <p className=\"text-xs text-purple-600\">\n    调整文字区域色块的透明度，值越高色块越明显\n  </p>\n</div>",
+  "dependencies": [
+    "IMPL-001",
+    "IMPL-008"
+  ],
+  "blocks": [],
+  "acceptance_criteria": [
+    "滑块正常显示",
+    "值范围 0-100%",
+    "拖动滑块更新 options.blockOpacity",
+    "显示当前百分比值",
+    "说明文字正确"
+  ],
+  "status_history": [
+    {
+      "from": "pending",
+      "to": "completed",
+      "changed_at": "2026-02-01T06:17:28.511Z"
+    }
+  ]
+}

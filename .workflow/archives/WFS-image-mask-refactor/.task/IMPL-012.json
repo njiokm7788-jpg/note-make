@@ -1,0 +1,38 @@
+{
+  "id": "IMPL-012",
+  "title": "性能优化 - 预览缩放",
+  "phase": 3,
+  "priority": "medium",
+  "effort": "M",
+  "status": "completed",
+  "file": "src/utils/imageProcessor.ts",
+  "description": "实现预览缩放策略，优化大图片处理性能",
+  "implementation": {
+    "strategy": "预览时缩放到最大 1200px，下载时使用原始尺寸",
+    "threshold": "图片宽度或高度超过 1200px 时启用缩放",
+    "quality": "预览使用缩放图，最终输出使用原图"
+  },
+  "code_changes": {
+    "add_function": "scaleForPreview(imageData: ImageData, maxSize: number): ImageData",
+    "update_generatePreview": "在处理前缩放图片",
+    "keep_processImagePair": "保持原始尺寸处理"
+  },
+  "code_template": "const PREVIEW_MAX_SIZE = 1200;\n\nfunction scaleForPreview(imageData: ImageData, maxSize: number): { data: ImageData; scale: number } {\n  const { width, height } = imageData;\n  const maxDim = Math.max(width, height);\n  \n  if (maxDim <= maxSize) {\n    return { data: imageData, scale: 1 };\n  }\n  \n  const scale = maxSize / maxDim;\n  const newWidth = Math.round(width * scale);\n  const newHeight = Math.round(height * scale);\n  \n  return {\n    data: scaleImageData(imageData, newWidth, newHeight),\n    scale\n  };\n}",
+  "dependencies": [
+    "IMPL-005"
+  ],
+  "blocks": [],
+  "acceptance_criteria": [
+    "大图片预览速度明显提升",
+    "预览质量可接受",
+    "最终输出保持原始质量",
+    "内存使用合理"
+  ],
+  "status_history": [
+    {
+      "from": "pending",
+      "to": "completed",
+      "changed_at": "2026-02-01T06:17:28.514Z"
+    }
+  ]
+}

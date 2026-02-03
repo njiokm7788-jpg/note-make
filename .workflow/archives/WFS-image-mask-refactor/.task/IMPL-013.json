@@ -1,0 +1,42 @@
+{
+  "id": "IMPL-013",
+  "title": "错误处理增强",
+  "phase": 3,
+  "priority": "medium",
+  "effort": "S",
+  "status": "completed",
+  "file": "src/utils/imageProcessor.ts",
+  "description": "增强错误处理，添加参数验证和用户友好提示",
+  "implementation": {
+    "parameter_validation": [
+      "textThreshold: 0-255",
+      "maskExpand: 0-20",
+      "blockColor: 有效 CSS 颜色",
+      "blockOpacity: 0-1"
+    ],
+    "error_messages": {
+      "invalid_threshold": "文字检测阈值必须在 0-255 之间",
+      "invalid_expand": "遮罩膨胀半径必须在 0-20 之间",
+      "invalid_color": "无效的颜色值，使用默认黄色",
+      "invalid_opacity": "透明度必须在 0-1 之间"
+    }
+  },
+  "code_template": "function validateOptions(options: ProcessingOptions): ProcessingOptions {\n  const validated = { ...options };\n  \n  // 验证阈值\n  if (validated.textThreshold < 0 || validated.textThreshold > 255) {\n    console.warn('文字检测阈值超出范围，使用默认值 200');\n    validated.textThreshold = 200;\n  }\n  \n  // 验证膨胀半径\n  if (validated.maskExpand < 0 || validated.maskExpand > 20) {\n    console.warn('遮罩膨胀半径超出范围，使用默认值 2');\n    validated.maskExpand = 2;\n  }\n  \n  // 验证透明度\n  if (validated.blockOpacity < 0 || validated.blockOpacity > 1) {\n    console.warn('色块透明度超出范围，使用默认值 0.3');\n    validated.blockOpacity = 0.3;\n  }\n  \n  return validated;\n}",
+  "dependencies": [
+    "IMPL-005"
+  ],
+  "blocks": [],
+  "acceptance_criteria": [
+    "无效参数被正确处理",
+    "控制台输出友好警告",
+    "不会因参数错误崩溃",
+    "使用合理的默认值"
+  ],
+  "status_history": [
+    {
+      "from": "pending",
+      "to": "completed",
+      "changed_at": "2026-02-01T06:17:28.515Z"
+    }
+  ]
+}

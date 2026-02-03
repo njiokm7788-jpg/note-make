@@ -1,0 +1,56 @@
+{
+  "id": "IMPL-008",
+  "title": "移除边缘引导控件",
+  "phase": 2,
+  "priority": "high",
+  "effort": "S",
+  "status": "completed",
+  "file": "src/components/Sidebar.tsx",
+  "description": "从 Sidebar 组件中移除边缘引导膨胀相关的 UI 控件",
+  "remove_elements": [
+    {
+      "name": "边缘引导膨胀开关",
+      "lines": "412-439",
+      "description": "useEdgeGuidedExpand toggle button"
+    },
+    {
+      "name": "边缘强度阈值滑块",
+      "lines": "441-465",
+      "description": "edgeThreshold slider (conditional)"
+    },
+    {
+      "name": "标注透明度滑块",
+      "lines": "385-410",
+      "description": "annotationOpacity slider - 替换为 blockOpacity"
+    }
+  ],
+  "ui_changes": {
+    "remove": [
+      "边缘引导膨胀开关及说明文字",
+      "边缘强度阈值滑块",
+      "标注透明度滑块 (将被 IMPL-010 替换)"
+    ],
+    "keep": [
+      "文字检测阈值滑块",
+      "遮罩膨胀半径滑块"
+    ]
+  },
+  "dependencies": [
+    "IMPL-001"
+  ],
+  "blocks": [],
+  "acceptance_criteria": [
+    "边缘引导膨胀开关已移除",
+    "边缘强度阈值滑块已移除",
+    "标注透明度滑块已移除",
+    "UI 布局正常",
+    "无 TypeScript 错误"
+  ],
+  "status_history": [
+    {
+      "from": "pending",
+      "to": "completed",
+      "changed_at": "2026-02-01T06:17:28.508Z"
+    }
+  ]
+}

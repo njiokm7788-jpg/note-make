@@ -1,0 +1,97 @@
+{
+  "project_structure": "Current architecture: Single-file App.tsx orchestrates all state and renders a 3-column grid layout (1:2 ratio) with upload area + settings in left column, preview in right 2 columns. Components are flat siblings (ImageUploader, ProcessingPanel, ImagePreview, BatchProcessor) with props-based communication. Proposed architecture: Transform to sidebar + main content layout with new component hierarchy - (1) UploadStatusBar as persistent header element, (2) UploadDrawer as overlay modal triggered from status bar, (3) Sidebar as fixed/collapsible left panel containing ProcessingPanel content, (4) PreviewArea as maximized main content. State management needs restructuring: drawer open/close state, sidebar collapsed state, responsive breakpoint detection, and upload status tracking should be lifted to App.tsx or extracted to custom hooks.",
+
+  "relevant_files": [
+    {
+      "path": "src/App.tsx",
+      "relevance": 1.0,
+      "rationale": "Main orchestrator requiring complete layout restructure from grid-based to sidebar+drawer architecture. Must implement new state management for drawer/sidebar visibility, responsive breakpoints, and component composition changes."
+    },
+    {
+      "path": "src/components/ProcessingPanel.tsx",
+      "relevance": 0.95,
+      "rationale": "Core settings component to be refactored into Sidebar. Current 352-line component with presets, advanced settings, and action buttons needs adaptation for sidebar context with collapsible sections and responsive behavior."
+    },
+    {
+      "path": "src/components/ImageUploader.tsx",
+      "relevance": 0.9,
+      "rationale": "Upload component to be split/adapted: simplified version for UploadStatusBar thumbnails, full version for UploadDrawer drag-drop areas. Current 147-line component handles single file upload with preview."
+    },
+    {
+      "path": "src/components/ImagePreview.tsx",
+      "relevance": 0.75,
+      "rationale": "Preview component used in both simple and comparison views. May need minor adjustments for maximized preview area layout but core functionality remains unchanged."
+    },
+    {
+      "path": "src/components/BatchProcessor.tsx",
+      "relevance": 0.5,
+      "rationale": "Batch mode component. Layout changes primarily affect single mode; batch mode may need similar sidebar treatment but is secondary priority."
+    },
+    {
+      "path": "src/index.css",
+      "relevance": 0.6,
+      "rationale": "Global styles file. May need new CSS animations for drawer slide, sidebar collapse, and responsive breakpoint utilities if not covered by Tailwind."
+    },
+    {
+      "path": "src/utils/imageProcessor.ts",
+      "relevance": 0.3,
+      "rationale": "Processing logic unchanged. Only relevant for ProcessingOptions type definition used across components."
+    },
+    {
+      "path": "src/utils/fileUtils.ts",
+      "relevance": 0.4,
+      "rationale": "File utilities unchanged. May need new helper for file type detection (annotated pattern matching) for smart upload assignment."
+    }
+  ],
+
+  "patterns": "React patterns in use: (1) Functional components with hooks (useState, useCallback, useEffect, useRef), (2) Props drilling for state sharing between App and children, (3) Custom useDebounce hook for performance optimization, (4) Controlled components for form inputs. Tailwind CSS patterns: utility-first styling, responsive prefixes (sm:, md:, lg:, xl:), transition utilities for animations. Component patterns: single-responsibility components, callback props for child-to-parent communication. New patterns needed: (1) Custom hooks for drawer/sidebar state management (useDrawer, useSidebar), (2) Responsive hook for breakpoint detection (useBreakpoint), (3) Focus trap pattern for drawer accessibility, (4) localStorage persistence for sidebar state.",
+
+  "dependencies": "External: React 19.0.0, Vite 6.0.5, Tailwind CSS 4.0.0, TypeScript 5.6.2, jszip (batch downloads), file-saver (downloads). Internal module dependencies: App.tsx imports all components and utils; ProcessingPanel imports presets/ProcessingOptions from imageProcessor; ImageUploader imports isImageFile from fileUtils. No state management library (Redux/Zustand) - all state in App.tsx. No animation library - using CSS transitions. No UI component library - custom components with Tailwind.",
+
+  "integration_points": "State integration: (1) originalFile/annotatedFile state must flow to UploadStatusBar (thumbnails), UploadDrawer (upload areas), and processing logic; (2) ProcessingOptions state shared between Sidebar and preview generation; (3) isProcessing state affects both Sidebar controls and preview area. Event integration: (1) Global paste handler (Ctrl+V) in App.tsx needs awareness of drawer state; (2) Keyboard shortcuts (Escape for drawer close, Ctrl+B for sidebar toggle) require global event listeners; (3) Responsive resize events for automatic sidebar collapse. Component integration: (1) UploadStatusBar click triggers UploadDrawer open; (2) UploadDrawer completion triggers auto-close and processing; (3) Sidebar parameter changes trigger debounced preview update.",
+
+  "constraints": "Technical constraints: (1) No breaking changes to existing processing logic or file handling; (2) Must maintain backward compatibility with current URL/state if any; (3) Tailwind CSS 4.0 syntax requirements; (4) React 19 compatibility. UX constraints from spec: (1) Drawer animation 300ms ease-out; (2) Sidebar width 280px expanded, 48px collapsed; (3) Responsive breakpoints: <768px mobile drawer, 768-1023px overlay sidebar, >=1024px fixed sidebar; (4) Focus trap in drawer for accessibility; (5) ESC key closes drawer/modals. Performance constraints: (1) Debounce parameter changes (300ms); (2) Lazy load drawer content; (3) Avoid layout thrashing during sidebar collapse animation.",
+
+  "clarification_needs": [
+    {
+      "question": "Should the new components (UploadStatusBar, UploadDrawer, Sidebar) be created as separate files or integrated into existing components?",
+      "context": "The UX spec defines 3 new major UI elements. Creating separate files follows single-responsibility principle but increases file count. Integrating into existing files keeps related code together but increases complexity.",
+      "options": [
+        "Create new separate component files (UploadStatusBar.tsx, UploadDrawer.tsx, Sidebar.tsx)",
+        "Refactor existing components (extend ImageUploader for status bar, ProcessingPanel becomes Sidebar)",
+        "Hybrid approach: new files for UploadStatusBar/UploadDrawer, refactor ProcessingPanel to Sidebar"
+      ],
+      "recommended": 2
+    },
+    {
+      "question": "How should responsive state management be implemented for sidebar collapse behavior?",
+      "context": "The spec requires automatic sidebar collapse at <1024px and manual toggle at all sizes. This requires detecting viewport width and persisting user preference.",
+      "options": [
+        "Use CSS media queries only (no JS state for responsive behavior)",
+        "Create useBreakpoint hook with window.matchMedia for JS-controlled responsive state",
+        "Use existing Tailwind responsive classes with minimal JS for manual toggle only"
+      ],
+      "recommended": 1
+    },
+    {
+      "question": "Should drawer/sidebar state be managed with custom hooks or kept inline in App.tsx?",
+      "context": "Current App.tsx already has significant state (500+ lines). Adding drawer/sidebar state increases complexity. Custom hooks would improve organization but add abstraction.",
+      "options": [
+        "Keep all state inline in App.tsx for simplicity",
+        "Extract to custom hooks (useUploadDrawer, useSidebar) for better organization",
+        "Use a lightweight state management solution (Zustand) for complex UI state"
+      ],
+      "recommended": 1
+    }
+  ],
+
+  "_metadata": {
+    "timestamp": "2026-01-31T00:00:00.000Z",
+    "task_description": "Based on .workflow/.brainstorming/ux-expert/ design specs, implement drawer-style upload area + sidebar settings layout refactor",
+    "source": "cli-explore-agent",
+    "exploration_angle": "architecture",
+    "exploration_index": 4,
+    "total_explorations": 4,
+    "duration_seconds": 45
+  }
+}

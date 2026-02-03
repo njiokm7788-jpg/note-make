@@ -1,0 +1,58 @@
+{
+  "id": "IMPL-011",
+  "title": "更新 App.tsx 类型引用",
+  "phase": 2,
+  "priority": "high",
+  "effort": "S",
+  "status": "completed",
+  "file": "src/App.tsx",
+  "description": "更新 App.tsx 中的 ProcessingOptions 类型引用和相关代码",
+  "changes": [
+    {
+      "location": "options state initialization",
+      "description": "更新默认值以匹配新接口",
+      "before": "presets[0].options (包含旧字段)",
+      "after": "presets[0].options (包含新字段)"
+    },
+    {
+      "location": "batch mode settings panel",
+      "description": "移除标注透明度滑块，添加色块相关控件",
+      "lines": "646-669"
+    },
+    {
+      "location": "localStorage preset handling",
+      "description": "确保预设 ID 匹配新预设"
+    }
+  ],
+  "code_changes": {
+    "remove": [
+      "annotationOpacity 相关的滑块 (批量模式设置面板)",
+      "useEdgeGuidedExpand 相关引用",
+      "edgeThreshold 相关引用"
+    ],
+    "update": [
+      "预设 ID 检查 (standard -> highlight-yellow)",
+      "默认预设选择逻辑"
+    ]
+  },
+  "batch_panel_update": "批量模式设置面板需要同步更新，添加色块颜色和透明度控件",
+  "dependencies": [
+    "IMPL-001",
+    "IMPL-007"
+  ],
+  "blocks": [],
+  "acceptance_criteria": [
+    "TypeScript 编译无错误",
+    "单张模式正常工作",
+    "批量模式设置面板正常工作",
+    "预设切换正常",
+    "localStorage 持久化正常"
+  ],
+  "status_history": [
+    {
+      "from": "pending",
+      "to": "completed",
+      "changed_at": "2026-02-01T06:17:28.513Z"
+    }
+  ]
+}

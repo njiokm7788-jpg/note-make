@@ -1,0 +1,87 @@
+{
+  "project_structure": "React 19 + TypeScript + Tailwind CSS 4.0 layered architecture. Components in src/components/ (ImageUploader, ProcessingPanel, BatchProcessor, ImagePreview), utilities in src/utils/ (imageProcessor.ts, fileUtils.ts). App.tsx serves as orchestrator managing mode switching (single/batch), file state, processing options, and preview generation. Current layout uses 3-column grid (lg:grid-cols-3) with upload+settings in left column and preview spanning 2 columns.",
+
+  "relevant_files": [
+    {
+      "path": "src/App.tsx",
+      "relevance": 0.95,
+      "rationale": "Main orchestrator - contains layout structure, state management patterns (useState, useCallback, useEffect), debounce hook, toast pattern, and mode switching logic that must be refactored for drawer+sidebar layout"
+    },
+    {
+      "path": "src/components/ImageUploader.tsx",
+      "relevance": 0.90,
+      "rationale": "Core upload component with drag-drop pattern, file handling callbacks, preview state management - will be adapted for drawer upload zones"
+    },
+    {
+      "path": "src/components/ProcessingPanel.tsx",
+      "relevance": 0.85,
+      "rationale": "Settings panel with collapsible sections pattern, preset selection, slider controls, toggle switches - will become sidebar component"
+    },
+    {
+      "path": "src/components/ImagePreview.tsx",
+      "relevance": 0.75,
+      "rationale": "Preview component with zoom modal pattern, checkered background for transparency - preview area patterns to preserve"
+    },
+    {
+      "path": "src/components/BatchProcessor.tsx",
+      "relevance": 0.65,
+      "rationale": "Batch mode patterns for drag-drop, file pairing, progress tracking - may need adaptation for new layout"
+    },
+    {
+      "path": "src/index.css",
+      "relevance": 0.60,
+      "rationale": "Tailwind CSS 4.0 theme configuration with custom primary colors - animation classes may need extension"
+    }
+  ],
+
+  "patterns": "**State Management Patterns**:\n- useState for local component state (App.tsx:29-46, ImageUploader.tsx:19-20, ProcessingPanel.tsx:31)\n- useCallback for memoized handlers (App.tsx:49-52, 140-157, ImageUploader.tsx:22-66)\n- useDebounce custom hook for options changes (App.tsx:17-26, 100)\n- useRef for first-render tracking (App.tsx:103-104)\n- useEffect for side effects: paste listener (App.tsx:55-94), auto-preview (App.tsx:106-138)\n\n**Drag-Drop Pattern** (ImageUploader.tsx:36-56, BatchProcessor.tsx:64-88):\n```typescript\nconst [isDragging, setIsDragging] = useState(false);\nconst handleDragOver = useCallback((e) => { e.preventDefault(); setIsDragging(true); }, []);\nconst handleDragLeave = useCallback((e) => { e.preventDefault(); setIsDragging(false); }, []);\nconst handleDrop = useCallback((e) => { e.preventDefault(); setIsDragging(false); handleFile(e.dataTransfer.files[0]); }, [handleFile]);\n```\n\n**Collapsible Section Pattern** (ProcessingPanel.tsx:101-123):\n```typescript\nconst [showAdvanced, setShowAdvanced] = useState(false);\n// Toggle button with rotate animation on chevron icon\n// Content wrapped in conditional render: {showAdvanced && (<div>...</div>)}\n```\n\n**Toast Notification Pattern** (App.tsx:46-52, 165-183):\n```typescript\nconst [toast, setToast] = useState<{message: string; type: 'success'|'info'}|null>(null);\nconst showToast = useCallback((message, type='success') => {\n  setToast({message, type});\n  setTimeout(() => setToast(null), 2000);\n}, []);\n// Fixed position, animate-fade-in class, auto-dismiss\n```\n\n**Modal/Overlay Pattern** (ImagePreview.tsx:54-60, 108-203):\n```typescript\nconst [isZoomed, setIsZoomed] = useState(false);\n// Fixed inset-0 z-50 bg-black/90 overlay\n// Click outside to close: onClick={(e) => e.target === e.currentTarget && onClose()}\n// ESC key handling recommended but not implemented\n```\n\n**Preset Selection Pattern** (ProcessingPanel.tsx:33-50, 79-99):\n```typescript\nconst handlePresetSelect = (presetId) => {\n  const preset = presets.find(p => p.id === presetId);\n  if (preset) { onChange(preset.options); onPresetChange?.(presetId); }\n};\n// Selected state: bg-primary-500 text-white\n// Unselected: bg-slate-100 text-slate-700 hover:bg-slate-200\n```\n\n**Toggle Switch Pattern** (ProcessingPanel.tsx:56-75):\n```typescript\n<button onClick={() => onAutoPreviewChange(!autoPreview)}\n  className={`relative w-9 h-5 rounded-full transition-colors duration-200\n    ${autoPreview ? 'bg-blue-500' : 'bg-slate-300'}`}>\n  <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm\n    transition-transform duration-200 ${autoPreview ? 'translate-x-4' : 'translate-x-0'}`}/>\n</button>\n```\n\n**Styling Patterns**:\n- Card containers: `bg-white rounded-2xl shadow-sm border border-slate-200 p-4`\n- Dashed upload zones: `border-2 border-dashed rounded-xl transition-all duration-200`\n- Active drag state: `border-primary-500 bg-primary-50`\n- Success state: `border-green-400 bg-green-50`\n- Primary buttons: `bg-primary-500 text-white hover:bg-primary-600 active:scale-98`\n- Disabled buttons: `bg-slate-200 text-slate-400 cursor-not-allowed`\n- Loading spinner: SVG with animate-spin class",
+
+  "dependencies": "**External Dependencies**:\n- React 19.0.0: useState, useCallback, useEffect, useRef hooks\n- Tailwind CSS 4.0.0: Utility classes, @theme custom properties (primary-50 to primary-900)\n- TypeScript 5.6.2: Interface definitions, type safety\n\n**Internal Dependencies**:\n- src/utils/imageProcessor.ts: ProcessingOptions type, generatePreview(), defaultProcessingOptions, presets[]\n- src/utils/fileUtils.ts: isImageFile(), downloadSingleResult(), downloadBatchResults(), generateId(), getBaseName(), ImagePair type\n\n**New Dependencies Needed for Drawer+Sidebar**:\n- No new external deps required\n- May need: focus-trap library for drawer accessibility (optional)\n- localStorage for state persistence (built-in)",
+
+  "integration_points": "**State Lifting Points** (App.tsx):\n- File state: originalFile, annotatedFile (App.tsx:30-31) - will be shared between status bar and drawer\n- Options state: options, selectedPreset (App.tsx:32-33) - moves to sidebar\n- Preview state: preview, showComparison (App.tsx:35-43) - stays in preview area\n- Processing state: isProcessing (App.tsx:34) - shared across components\n\n**Component Communication**:\n- ImageUploader receives: label, description, onFileSelect, file (App.tsx:244-255)\n- ProcessingPanel receives: options, onChange, onProcess, onDownload, canProcess, canDownload, isProcessing, autoPreview, onAutoPreviewChange, selectedPreset, onPresetChange (App.tsx:259-271)\n\n**Event Handlers to Preserve**:\n- Global paste handler (App.tsx:55-94) - adapt for drawer context\n- Auto-preview effect (App.tsx:106-138) - keep debounced processing\n- handleProcess (App.tsx:140-152) - manual process trigger\n- handleDownload (App.tsx:154-157) - download action\n\n**Layout Integration Points**:\n- Header: sticky top-0 z-10 (App.tsx:186) - status bar goes below\n- Main content: max-w-screen-2xl mx-auto (App.tsx:236) - sidebar + preview area\n- Grid layout: grid-cols-1 lg:grid-cols-3 (App.tsx:238) - changes to sidebar + main\n\n**CSS Animation Integration**:\n- Existing: transition-all duration-200, animate-spin, animate-fade-in\n- New needed: drawer slide (translateY), sidebar collapse (width), overlay fade (opacity)",
+
+  "constraints": "**Tailwind CSS 4.0 Constraints**:\n- Use @theme for custom properties, not tailwind.config.js\n- Animation classes must be defined in index.css or use inline styles\n- Transition utilities: duration-150/200/250/300ms, ease/ease-in/ease-out\n\n**React 19 Patterns**:\n- Functional components only, no class components\n- Hooks at top level, not in conditionals\n- useCallback for handlers passed as props\n- useEffect cleanup for event listeners\n\n**Existing Code Style**:\n- Chinese comments and UI text\n- Interface definitions before component\n- Destructured props in function signature\n- Conditional className with template literals\n- SVG icons inline, not as separate components\n\n**Accessibility Requirements** (from design spec):\n- ARIA attributes: role, aria-modal, aria-expanded, aria-labelledby\n- Focus trap in drawer\n- ESC key to close drawer/modal\n- Tab navigation order\n\n**Animation Timing** (from design spec):\n- Drawer: 300ms ease-out\n- Overlay: 200ms ease\n- Sidebar collapse: 250ms ease-out\n- Toast: 150ms appear, 200ms disappear\n\n**Responsive Breakpoints**:\n- lg (>=1024px): sidebar expanded by default\n- md (768-1023px): sidebar collapsed, overlay mode\n- sm (<768px): bottom drawer mode for sidebar",
+
+  "clarification_needs": [
+    {
+      "question": "Should the drawer auto-close when both images are uploaded, or require explicit 'Done' button click?",
+      "context": "Design spec mentions 'autoCloseOnComplete: boolean' as configurable. Current ImageUploader doesn't auto-close. This affects UX flow and state management complexity.",
+      "options": [
+        "Auto-close after 500ms delay when both uploaded (smoother flow)",
+        "Require explicit 'Done' button click (more control)",
+        "Make it a user preference stored in localStorage"
+      ],
+      "recommended": 0
+    },
+    {
+      "question": "How should sidebar state persistence work across sessions?",
+      "context": "Design spec defines SidebarPersistState with collapsed, advancedExpanded, selectedPreset, customOptions. Current code doesn't persist any sidebar state.",
+      "options": [
+        "Persist all sidebar state to localStorage",
+        "Only persist collapsed state and preset selection",
+        "No persistence, reset to defaults on page load"
+      ],
+      "recommended": 1
+    },
+    {
+      "question": "Should the new layout support batch mode, or focus only on single-image mode initially?",
+      "context": "Current App.tsx has mode switching between 'single' and 'batch'. The drawer+sidebar design spec focuses on single mode. BatchProcessor has different upload patterns.",
+      "options": [
+        "Implement drawer+sidebar for single mode only, keep batch mode as-is",
+        "Adapt drawer+sidebar layout for both modes",
+        "Deprecate batch mode in favor of enhanced single mode"
+      ],
+      "recommended": 0
+    }
+  ],
+
+  "_metadata": {
+    "timestamp": "2026-01-31T12:00:00.000Z",
+    "task_description": "基于 .workflow/.brainstorming/ux-expert/ 的设计规格，实现抽屉式上传区 + 侧边栏设置布局重构",
+    "source": "cli-explore-agent",
+    "exploration_angle": "patterns",
+    "exploration_index": 1,
+    "total_explorations": 4,
+    "duration_seconds": 45
+  }
+}

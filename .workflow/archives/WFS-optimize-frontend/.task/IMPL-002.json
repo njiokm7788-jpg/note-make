@@ -1,0 +1,47 @@
+{
+  "task_id": "IMPL-002",
+  "title": "实现粘贴板支持",
+  "priority": "P0",
+  "status": "completed",
+  "description": "添加全局粘贴事件监听，支持 Ctrl+V 直接粘贴图片",
+  "files": [
+    "src/App.tsx",
+    "src/components/ImageUploader.tsx"
+  ],
+  "implementation_steps": [
+    {
+      "step": 1,
+      "description": "在 App.tsx 中添加全局粘贴事件监听",
+      "details": "使用 useEffect 监听 document 的 paste 事件，提取图片文件"
+    },
+    {
+      "step": 2,
+      "description": "实现智能填充逻辑",
+      "details": "先填充原图，后填充标注图；如果两个都有则替换原图"
+    },
+    {
+      "step": 3,
+      "description": "添加粘贴成功提示",
+      "details": "添加 toast 状态，粘贴成功时显示提示信息"
+    },
+    {
+      "step": 4,
+      "description": "在 ImageUploader 中添加粘贴提示文字",
+      "details": "在上传区域显示'支持 Ctrl+V 粘贴'提示"
+    }
+  ],
+  "acceptance_criteria": [
+    "Ctrl+V 可粘贴图片",
+    "自动填充到正确位置",
+    "显示粘贴成功提示",
+    "上传区域显示粘贴提示"
+  ],
+  "dependencies": [],
+  "status_history": [
+    {
+      "from": "pending",
+      "to": "completed",
+      "changed_at": "2026-01-30T17:35:24.564Z"
+    }
+  ]
+}
