@@ -1,0 +1,262 @@
+{
+  "summary": "将批量模式的参数设置升级为完整 Sidebar（包含预设管理），并将上传区域分离为左右并排的原图和标注图两个独立上传窗口，采用按顺序配对的策略。",
+  "approach": "采用渐进式重构策略：首先在批量模式中集成完整 Sidebar 替换 ProcessingPanel，然后重构 BatchProcessor 组件，将单一上传区域拆分为两个独立的 UploadDropZone，复用单张模式的上传组件模式，最后实现按顺序配对的文件匹配逻辑。",
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "集成完整 Sidebar 到批量模式",
+      "scope": "src/App.tsx, src/components/Sidebar.tsx",
+      "action": "Update",
+      "description": "在批量模式中使用完整 Sidebar 替换 ProcessingPanel，实现与单张模式一致的预设管理功能（添加、删除、更新、重置预设）。",
+      "modification_points": [
+        {
+          "file": "src/App.tsx",
+          "target": "批量模式渲染逻辑:300-350",
+          "change": "移除 ProcessingPanel，添加 Sidebar 组件，传递 options、userPresets、selectedPreset 等状态"
+        },
+        {
+          "file": "src/App.tsx",
+          "target": "handleBatchOptionChange:198-203",
+          "change": "调整为与 Sidebar 的 onChange 回调兼容，保持预设自动保存逻辑"
+        }
+      ],
+      "implementation": [
+        "在 App.tsx 的批量模式渲染部分，将 <ProcessingPanel> 替换为 <Sidebar>",
+        "传递必要的 props：options, onChange, userPresets, selectedPreset, onPresetSelect, onPresetAdd, onPresetRemove, onPresetUpdate, onPresetsReset",
+        "确保 handleBatchOptionChange 回调与 Sidebar 的 onChange 签名一致",
+        "验证预设管理功能在批量模式下正常工作（添加、删除、更新、重置）",
+        "测试参数变更时的预设自动保存逻辑"
+      ],
+      "reference": {
+        "pattern": "Sidebar 集成模式",
+        "files": ["src/App.tsx:85-95 (单张模式 Sidebar 使用)", "src/components/Sidebar.tsx:120-180 (预设管理逻辑)"],
+        "examples": "参考单张模式中 Sidebar 的集成方式，确保批量模式使用相同的 props 和回调"
+      },
+      "acceptance": [
+        "批量模式显示完整 Sidebar，包含所有预设管理按钮",
+        "参数调整后自动保存到选中的预设",
+        "预设添加、删除、更新、重置功能正常工作",
+        "批量模式与单张模式的参数设置保持一致"
+      ],
+      "rationale": {
+        "chosen_approach": "直接复用 Sidebar 组件而非创建新的 BatchSidebar，保持代码一致性和可维护性",
+        "alternatives_considered": [
+          "创建新的 BatchSidebar 组件（增加维护成本）",
+          "扩展 ProcessingPanel 添加预设管理（代码重复）"
+        ],
+        "decision_factors": [
+          "代码复用性：避免重复实现预设管理逻辑",
+          "一致性：确保单张和批量模式的用户体验一致",
+          "可维护性：单一组件更易于维护和更新"
+        ],
+        "tradeoffs": "Sidebar 可能包含一些批量模式不需要的功能，但通过 props 控制可以灵活调整"
+      },
+      "verification": {
+        "manual_checks": [
+          "在批量模式下打开应用，验证 Sidebar 正确显示",
+          "调整参数，验证自动保存到选中预设",
+          "添加新预设，验证预设列表更新",
+          "删除预设，验证预设列表更新",
+          "重置预设，验证恢复默认值"
+        ],
+        "success_metrics": [
+          "批量模式 Sidebar 功能与单张模式 100% 一致",
+          "参数变更后 localStorage 正确更新"
+        ]
+      }
+    },
+    {
+      "id": "T2",
+      "title": "重构批量上传区域为左右并排布局",
+      "scope": "src/components/BatchProcessor.tsx",
+      "action": "Refactor",
+      "description": "将 BatchProcessor 的单一上传区域拆分为左右并排的两个独立 UploadDropZone（原图和标注图），复用 UploadModal 的上传组件模式，直接显示在批量模式界面中。",
+      "modification_points": [
+        {
+          "file": "src/components/BatchProcessor.tsx",
+          "target": "上传区域渲染:80-120",
+          "change": "移除单一上传区域，添加两个并排的 UploadDropZone 组件（原图左侧，标注图右侧）"
+        },
+        {
+          "file": "src/components/BatchProcessor.tsx",
+          "target": "文件状态管理:20-40",
+          "change": "添加 originalFiles 和 annotatedFiles 两个独立的文件数组状态"
+        },
+        {
+          "file": "src/components/BatchProcessor.tsx",
+          "target": "文件配对逻辑:26-37",
+          "change": "实现按顺序配对策略：originalFiles[i] 与 annotatedFiles[i] 配对"
+        }
+      ],
+      "implementation": [
+        "在 BatchProcessor 中定义两个独立的文件数组状态：originalFiles 和 annotatedFiles",
+        "创建两个 UploadDropZone 组件，参考 UploadModal 的实现模式",
+        "左侧 UploadDropZone 处理原图上传，右侧处理标注图上传",
+        "使用 Flexbox 或 Grid 布局实现左右并排显示",
+        "实现按顺序配对逻辑：遍历两个数组，按索引配对文件",
+        "添加文件数量不匹配的提示（如原图 5 张，标注图 3 张）",
+        "保留拖拽、文件预览、删除等现有功能"
+      ],
+      "reference": {
+        "pattern": "UploadDropZone 复用模式",
+        "files": [
+          "src/components/UploadModal.tsx:45-97 (UploadDropZone 实现)",
+          "src/components/UploadDrawer.tsx:50-110 (UploadDropZone 复用示例)"
+        ],
+        "examples": "参考 UploadModal 中的 UploadDropZone 组件，实现相同的拖拽、预览、验证逻辑"
+      },
+      "acceptance": [
+        "批量模式显示左右并排的两个上传区域",
+        "原图上传到左侧区域，标注图上传到右侧区域",
+        "文件按顺序配对（第1张原图配第1张标注图）",
+        "文件数量不匹配时显示警告提示",
+        "保留拖拽、预览、删除功能"
+      ],
+      "rationale": {
+        "chosen_approach": "按顺序配对而非文件名匹配，简化用户操作，避免文件名不规范导致的配对失败",
+        "alternatives_considered": [
+          "保持文件名匹配（用户需要确保文件名规范）",
+          "手动配对（增加操作复杂度）",
+          "混合模式（实现复杂度高）"
+        ],
+        "decision_factors": [
+          "用户体验：按顺序配对最直观，用户只需按顺序上传",
+          "容错性：避免文件名不规范导致的配对失败",
+          "实现简单：索引配对逻辑简单清晰"
+        ],
+        "tradeoffs": "用户需要确保上传顺序正确，但可以通过拖拽调整顺序"
+      },
+      "verification": {
+        "manual_checks": [
+          "上传 3 张原图和 3 张标注图，验证按顺序配对",
+          "上传 5 张原图和 3 张标注图，验证显示数量不匹配警告",
+          "拖拽文件到上传区域，验证拖拽功能正常",
+          "删除某张图片，验证列表更新",
+          "预览图片，验证预览功能正常"
+        ],
+        "success_metrics": [
+          "文件配对准确率 100%（按索引配对）",
+          "支持拖拽上传和文件选择两种方式",
+          "文件数量不匹配时显示明确提示"
+        ]
+      },
+      "risks": [
+        {
+          "description": "用户可能不理解按顺序配对的逻辑，导致配对错误",
+          "probability": "Medium",
+          "impact": "Medium",
+          "mitigation": "在界面上添加清晰的提示文字，说明配对规则（第1张原图配第1张标注图）",
+          "fallback": "提供拖拽调整顺序的功能，允许用户手动调整配对"
+        }
+      ]
+    },
+    {
+      "id": "T3",
+      "title": "优化批量处理流程和用户反馈",
+      "scope": "src/components/BatchProcessor.tsx, src/utils/fileUtils.ts",
+      "action": "Update",
+      "description": "优化批量处理流程，添加处理进度显示、错误处理和用户反馈，确保按顺序配对的文件正确处理。",
+      "modification_points": [
+        {
+          "file": "src/components/BatchProcessor.tsx",
+          "target": "处理逻辑:150-200",
+          "change": "更新批量处理逻辑，使用按顺序配对的文件对"
+        },
+        {
+          "file": "src/components/BatchProcessor.tsx",
+          "target": "进度显示:220-250",
+          "change": "添加处理进度条和当前处理文件名显示"
+        },
+        {
+          "file": "src/utils/fileUtils.ts",
+          "target": "downloadBatchResults 函数",
+          "change": "确保批量下载逻辑兼容新的文件配对方式"
+        }
+      ],
+      "implementation": [
+        "更新批量处理逻辑，遍历 originalFiles 和 annotatedFiles，按索引配对",
+        "添加处理进度状态：当前处理索引、总文件数、处理状态",
+        "实现进度条组件，显示处理进度（如 3/10）",
+        "显示当前正在处理的文件名",
+        "添加错误处理：单个文件处理失败时记录错误，继续处理后续文件",
+        "处理完成后显示成功和失败的文件数量",
+        "验证 downloadBatchResults 函数兼容新的配对方式"
+      ],
+      "reference": {
+        "pattern": "批量处理进度反馈",
+        "files": ["src/components/BatchProcessor.tsx:150-200 (现有批量处理逻辑)"],
+        "examples": "参考现有的批量处理逻辑，添加进度显示和错误处理"
+      },
+      "acceptance": [
+        "批量处理时显示进度条（如 3/10）",
+        "显示当前正在处理的文件名",
+        "单个文件处理失败不影响后续文件",
+        "处理完成后显示成功和失败统计",
+        "批量下载功能正常工作"
+      ],
+      "depends_on": ["T2"],
+      "rationale": {
+        "chosen_approach": "渐进式处理，单个文件失败不中断整个批处理流程，提供详细的进度反馈",
+        "alternatives_considered": [
+          "遇到错误立即中断（用户体验差）",
+          "静默处理错误（用户无法感知问题）"
+        ],
+        "decision_factors": [
+          "用户体验：实时进度反馈让用户了解处理状态",
+          "容错性：单个文件失败不影响其他文件",
+          "可调试性：详细的错误信息便于问题排查"
+        ],
+        "tradeoffs": "需要额外的状态管理和 UI 组件，但显著提升用户体验"
+      },
+      "verification": {
+        "manual_checks": [
+          "批量处理 10 张图片，验证进度条正确更新",
+          "故意上传一张损坏的图片，验证错误处理",
+          "处理完成后验证成功/失败统计正确",
+          "批量下载处理结果，验证下载功能正常"
+        ],
+        "success_metrics": [
+          "进度显示实时更新，延迟 <100ms",
+          "单个文件失败不影响其他文件处理",
+          "错误信息清晰明确"
+        ]
+      }
+    }
+  ],
+  "design_decisions": [
+    {
+      "decision": "批量模式使用完整 Sidebar 而非简化版 ProcessingPanel",
+      "rationale": "确保单张和批量模式的参数设置体验一致，避免代码重复，便于维护",
+      "tradeoff": "Sidebar 可能包含批量模式不需要的功能，但可以通过 props 控制",
+      "alternatives": ["创建新的 BatchSidebar", "扩展 ProcessingPanel"]
+    },
+    {
+      "decision": "采用按顺序配对而非文件名匹配",
+      "rationale": "简化用户操作，避免文件名不规范导致的配对失败，配对逻辑更直观",
+      "tradeoff": "用户需要确保上传顺序正确，但可以通过拖拽调整",
+      "alternatives": ["保持文件名匹配", "手动配对", "混合模式"]
+    },
+    {
+      "decision": "直接在批量模式界面显示上传区域，无需触发按钮",
+      "rationale": "减少交互步骤，提升批量处理的效率，用户可以直接开始上传",
+      "tradeoff": "占用更多界面空间，但批量模式本身就是为了处理大量文件",
+      "alternatives": ["使用按钮触发模态框", "使用两个独立按钮"]
+    }
+  ],
+  "focus_paths": [
+    "src/App.tsx",
+    "src/components/Sidebar.tsx",
+    "src/components/BatchProcessor.tsx",
+    "src/components/ProcessingPanel.tsx",
+    "src/utils/fileUtils.ts"
+  ],
+  "estimated_time": "2-3 小时",
+  "recommended_execution": "Agent",
+  "complexity": "Medium",
+  "_metadata": {
+    "timestamp": "2026-02-01T19:00:00Z",
+    "source": "direct-planning",
+    "planning_mode": "direct",
+    "exploration_angles": ["patterns", "integration-points", "testing"]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "session_id": "merge-horizontal-text-regions-2026-02-01",
+  "task_description": "同一水平线上连续的文字区域合并为一个色块条",
+  "timestamp": "2026-02-01T18:30:00.000Z",
+  "complexity": "Low",
+  "exploration_count": 1,
+  "explorations": [
+    {
+      "angle": "algorithm",
+      "file": "exploration-algorithm.json",
+      "path": ".workflow/.lite-plan/merge-horizontal-text-regions-2026-02-01/exploration-algorithm.json",
+      "index": 1
+    }
+  ]
+}

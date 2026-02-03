@@ -1,0 +1,27 @@
+{
+  "session_id": "batch-mode-params-upload-split-2026-02-01",
+  "task_description": "批量模式的参数设置需要和单张模式一样，在批量模式将标注图和原图上传窗口分开",
+  "timestamp": "2026-02-01T19:00:00Z",
+  "complexity": "Medium",
+  "exploration_count": 3,
+  "explorations": [
+    {
+      "angle": "patterns",
+      "file": "exploration-patterns.json",
+      "path": ".workflow/.lite-plan/batch-mode-params-upload-split-2026-02-01/exploration-patterns.json",
+      "index": 1
+    },
+    {
+      "angle": "integration-points",
+      "file": "exploration-integration-points.json",
+      "path": ".workflow/.lite-plan/batch-mode-params-upload-split-2026-02-01/exploration-integration-points.json",
+      "index": 2
+    },
+    {
+      "angle": "testing",
+      "file": "exploration-testing.json",
+      "path": ".workflow/.lite-plan/batch-mode-params-upload-split-2026-02-01/exploration-testing.json",
+      "index": 3
+    }
+  ]
+}

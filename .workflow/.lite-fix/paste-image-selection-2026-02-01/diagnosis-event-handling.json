@@ -1,0 +1,136 @@
+{
+  "symptom": {
+    "description": "When pasting images using Ctrl+V, users cannot choose whether the pasted image should be assigned to the original image slot or the annotated image slot. The system enforces a fixed sequence: first paste always goes to original, second paste always goes to annotated. This prevents users from pasting annotated image first or replacing only the annotated image.",
+    "error_message": null,
+    "stack_trace": null,
+    "frequency": "always",
+    "user_impact": "Users must follow a rigid paste order (original first, then annotated), which is inconvenient when they want to paste images in a different order or replace only the annotated image. This reduces workflow flexibility and forces unnecessary workarounds."
+  },
+  "root_cause": {
+    "file": "src/App.tsx",
+    "line_range": "246-291",
+    "function": "handlePaste (useEffect callback)",
+    "issue": "The paste event handler implements a hardcoded sequential logic that automatically determines the target slot based on current file state. Lines 272-282 show the decision tree: if originalFile is null, paste goes to original; else if annotatedFile is null, paste goes to annotated; else replace original. This logic provides no mechanism for user choice or preference, making the paste behavior deterministic but inflexible.",
+    "confidence": 0.95,
+    "introduced_by": "Initial implementation of paste functionality",
+    "category": "logic_error"
+  },
+  "affected_files": [
+    {
+      "path": "src/App.tsx",
+      "relevance": 0.95,
+      "rationale": "Contains the global paste event listener (lines 246-291) that implements the problematic sequential assignment logic. This is the primary location where paste events are captured and processed.",
+      "change_type": "fix_target"
+    },
+    {
+      "path": "src/components/UploadModal.tsx",
+      "relevance": 0.75,
+      "rationale": "The upload modal UI could be enhanced to provide visual feedback or controls for paste target selection. Currently has two separate UploadDropZone components (lines 328-341) but no paste target indication.",
+      "change_type": "needs_update"
+    },
+    {
+      "path": "src/components/UploadDrawer.tsx",
+      "relevance": 0.70,
+      "rationale": "Similar to UploadModal, the drawer component has two UploadDropZone components (lines 280-293) that could benefit from paste target selection UI enhancements.",
+      "change_type": "needs_update"
+    },
+    {
+      "path": "src/components/FloatingUploadButton.tsx",
+      "relevance": 0.40,
+      "rationale": "Displays upload status but does not participate in paste event handling. Could potentially show paste target indicator if UI enhancement is chosen.",
+      "change_type": "reference_only"
+    }
+  ],
+  "reproduction_steps": [
+    "Open the application in single mode",
+    "Copy an annotated image to clipboard (the one you want to paste first)",
+    "Press Ctrl+V to paste",
+    "Observe: The image is automatically assigned to 'Original Image' slot, not 'Annotated Image'",
+    "Copy another image (the original) to clipboard",
+    "Press Ctrl+V again",
+    "Observe: This second image goes to 'Annotated Image' slot",
+    "Result: User cannot choose paste target; must follow original→annotated sequence"
+  ],
+  "fix_hints": [
+    {
+      "description": "Add paste target selection mechanism with keyboard modifier",
+      "approach": "Modify the handlePaste function (App.tsx lines 246-291) to check for keyboard modifiers (e.g., Shift+Ctrl+V for annotated, Ctrl+V for original). This provides explicit user control without UI changes. Example: if (e.shiftKey) { setAnnotatedFile(file); } else { setOriginalFile(file); }",
+      "code_example": "const handlePaste = (e: ClipboardEvent) => {\n  // ... existing checks ...\n  const file = item.getAsFile();\n  if (file) {\n    e.preventDefault();\n    setIsDrawerOpen(true);\n    \n    // Shift+Ctrl+V → Annotated, Ctrl+V → Original\n    if (e.shiftKey) {\n      setAnnotatedFile(file);\n      showToast('已粘贴为 AI 标注图片', 'success');\n    } else {\n      setOriginalFile(file);\n      showToast('已粘贴为原始图片', 'success');\n    }\n  }\n};",
+      "risk": "low"
+    },
+    {
+      "description": "Implement paste target focus detection",
+      "approach": "Track which UploadDropZone component has focus or was last interacted with. When paste event fires, assign the image to the focused/active drop zone. This requires adding focus tracking state and passing it through props to UploadModal/UploadDrawer components.",
+      "code_example": "// In App.tsx\nconst [pasteTarget, setPasteTarget] = useState<'original' | 'annotated' | null>(null);\n\n// In handlePaste\nif (file) {\n  e.preventDefault();\n  setIsDrawerOpen(true);\n  \n  if (pasteTarget === 'annotated') {\n    setAnnotatedFile(file);\n  } else {\n    setOriginalFile(file); // default to original\n  }\n}\n\n// Pass setPasteTarget to UploadModal/UploadDrawer\n// Each UploadDropZone calls setPasteTarget on focus/click",
+      "risk": "medium"
+    },
+    {
+      "description": "Add visual paste target indicator with toggle",
+      "approach": "Display a small UI indicator (e.g., radio buttons or toggle) in the UploadModal/UploadDrawer that shows and controls which slot will receive the next pasted image. Update handlePaste to respect this selection. This provides clear visual feedback but requires UI changes.",
+      "code_example": "// In App.tsx\nconst [pasteTarget, setPasteTarget] = useState<'original' | 'annotated'>('original');\n\n// In handlePaste\nif (file) {\n  e.preventDefault();\n  setIsDrawerOpen(true);\n  \n  if (pasteTarget === 'annotated') {\n    setAnnotatedFile(file);\n    showToast('已粘贴为 AI 标注图片', 'success');\n  } else {\n    setOriginalFile(file);\n    showToast('已粘贴为原始图片', 'success');\n  }\n}\n\n// In UploadModal/UploadDrawer, add toggle UI:\n<div className=\"flex gap-2 mb-2\">\n  <button onClick={() => setPasteTarget('original')} \n    className={pasteTarget === 'original' ? 'active' : ''}>\n    粘贴到原图\n  </button>\n  <button onClick={() => setPasteTarget('annotated')}\n    className={pasteTarget === 'annotated' ? 'active' : ''}>\n    粘贴到标注图\n  </button>\n</div>",
+      "risk": "medium"
+    },
+    {
+      "description": "Implement smart paste with user confirmation dialog",
+      "approach": "When paste event fires and both slots are empty, show a confirmation dialog asking user to choose the target slot. This provides explicit choice but interrupts workflow with a modal dialog.",
+      "code_example": "// In handlePaste\nif (file) {\n  e.preventDefault();\n  \n  if (!originalFile && !annotatedFile) {\n    // Show dialog: \"将图片粘贴为: [原图] [标注图]\"\n    const choice = await showPasteTargetDialog();\n    if (choice === 'original') {\n      setOriginalFile(file);\n    } else {\n      setAnnotatedFile(file);\n    }\n  } else {\n    // Use existing sequential logic as fallback\n    // ...\n  }\n}",
+      "risk": "high"
+    }
+  ],
+  "dependencies": "React useState, useEffect, useCallback hooks for state management and event handling. Browser ClipboardEvent API for paste event capture. No external libraries required for the fix.",
+  "constraints": "The fix must maintain backward compatibility with existing drag-and-drop and file input upload methods. The paste event handler must continue to respect input focus (lines 250-253) to avoid interfering with text input fields. The solution should work in single mode only (batch mode check at line 256 must remain).",
+  "related_issues": [
+    {
+      "type": "similar_bug",
+      "reference": "src/App.tsx:272-282",
+      "description": "The sequential assignment logic also affects the 'both slots filled' scenario, where it always replaces the original image. This is another manifestation of the lack of user choice."
+    },
+    {
+      "type": "tech_debt",
+      "reference": "src/App.tsx:269-270",
+      "description": "The paste handler opens the drawer (setIsDrawerOpen(true)) every time an image is pasted, even if the drawer is already open. This could be optimized to only open when closed."
+    }
+  ],
+  "clarification_needs": [
+    {
+      "question": "Which paste target selection method should be implemented?",
+      "context": "There are multiple approaches to allow users to choose paste target: keyboard modifiers (Shift+Ctrl+V), focus detection, visual toggle UI, or confirmation dialog. Each has different UX implications and implementation complexity.",
+      "options": [
+        "Keyboard modifier (Shift+Ctrl+V for annotated, Ctrl+V for original) - simplest, no UI changes",
+        "Focus detection (paste goes to last-clicked drop zone) - intuitive but requires focus tracking",
+        "Visual toggle UI (radio buttons or toggle in modal) - clearest but requires UI changes",
+        "Confirmation dialog (ask user on first paste) - explicit but interrupts workflow"
+      ],
+      "recommended": 0
+    },
+    {
+      "question": "Should the sequential fallback logic be preserved?",
+      "context": "The current sequential logic (original→annotated→replace original) provides a predictable default behavior. If a new selection mechanism is added, should this fallback still apply when no explicit choice is made?",
+      "options": [
+        "Keep sequential fallback as default when no explicit choice is made",
+        "Remove sequential logic entirely, always require explicit choice",
+        "Make sequential logic optional via user preference setting"
+      ],
+      "recommended": 0
+    },
+    {
+      "question": "Should paste target selection persist across paste operations?",
+      "context": "If a visual toggle or preference is implemented, should the selected target persist for subsequent paste operations, or reset to a default after each paste?",
+      "options": [
+        "Persist selection across paste operations (sticky target)",
+        "Reset to default (original) after each successful paste",
+        "Smart reset: persist until both slots are filled, then reset"
+      ],
+      "recommended": 2
+    }
+  ],
+  "_metadata": {
+    "timestamp": "2026-02-01T12:00:00.000Z",
+    "bug_description": "上传粘贴图片时不能自己选择是原图还是标注图,只能先粘贴原图然后才能粘贴标注图",
+    "source": "cli-explore-agent",
+    "diagnosis_angle": "event-handling",
+    "diagnosis_index": 2,
+    "total_diagnoses": 2,
+    "duration_seconds": 45
+  }
+}

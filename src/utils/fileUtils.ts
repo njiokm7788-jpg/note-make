@@ -46,27 +46,38 @@ export async function downloadSingleResult(
 
 /**
  * 批量处理并打包下载
+ * @param pairs 图片对数组
+ * @param options 处理选项
+ * @param onProgress 进度回调 (当前索引, 总数, 当前文件名, 是否成功, 错误信息)
  */
 export async function downloadBatchResults(
   pairs: ImagePair[],
   options: ProcessingOptions = defaultProcessingOptions,
-  onProgress?: (current: number, total: number) => void
+  onProgress?: (current: number, total: number, fileName: string, success: boolean, error?: string) => void
 ): Promise<void> {
   const zip = new JSZip();
   const total = pairs.length;
-  
+
   for (let i = 0; i < pairs.length; i++) {
     const pair = pairs[i];
+    const fileName = pair.originalName;
+
     try {
       const blob = await processImagePair(pair.originalFile, pair.annotatedFile, options);
       const baseName = getBaseName(pair.originalName);
       zip.file(`${baseName}_merged.png`, blob);
-      onProgress?.(i + 1, total);
+
+      // 成功回调
+      onProgress?.(i + 1, total, fileName, true);
     } catch (error) {
-      console.error(`处理 ${pair.originalName} 时出错:`, error);
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      console.error(`处理 ${fileName} 时出错:`, error);
+
+      // 失败回调
+      onProgress?.(i + 1, total, fileName, false, errorMessage);
     }
   }
-  
+
   const content = await zip.generateAsync({ type: 'blob' });
   saveAs(content, 'merged_images.zip');
 }

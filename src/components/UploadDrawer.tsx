@@ -15,6 +15,8 @@ export interface UploadDrawerProps {
   annotatedFile: File | null;
   onOriginalSelect: (file: File) => void;
   onAnnotatedSelect: (file: File) => void;
+  activePasteTarget?: 'original' | 'annotated' | null;
+  onSetActivePasteTarget?: (target: 'original' | 'annotated' | null) => void;
 }
 
 function useFilePreview(file: File | null) {
@@ -61,12 +63,18 @@ function UploadDropZone({
   file,
   onSelect,
   inputId,
+  isActivePasteTarget,
+  onMouseEnter,
+  onMouseLeave,
 }: {
   title: string;
   description: string;
   file: File | null;
   onSelect: (file: File) => void;
   inputId: string;
+  isActivePasteTarget?: boolean;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const preview = useFilePreview(file);
@@ -128,11 +136,14 @@ function UploadDropZone({
             ? 'border-green-400 bg-green-50'
             : 'border-slate-300 bg-white hover:border-primary-400 hover:bg-slate-50'
           }
+          ${isActivePasteTarget ? 'ring-2 ring-blue-500 ring-offset-2' : ''}
         `}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => document.getElementById(inputId)?.click()}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
       >
         <input
           id={inputId}
@@ -194,6 +205,8 @@ export function UploadDrawer({
   annotatedFile,
   onOriginalSelect,
   onAnnotatedSelect,
+  activePasteTarget,
+  onSetActivePasteTarget,
 }: UploadDrawerProps) {
   const [shouldRender, setShouldRender] = useState(isOpen);
   const originalInputId = `upload-drawer-original-${useId()}`;
@@ -283,6 +296,9 @@ export function UploadDrawer({
                 file={originalFile}
                 onSelect={onOriginalSelect}
                 inputId={originalInputId}
+                isActivePasteTarget={activePasteTarget === 'original'}
+                onMouseEnter={() => onSetActivePasteTarget?.('original')}
+                onMouseLeave={() => onSetActivePasteTarget?.(null)}
               />
               <UploadDropZone
                 title="标注图"
@@ -290,6 +306,9 @@ export function UploadDrawer({
                 file={annotatedFile}
                 onSelect={onAnnotatedSelect}
                 inputId={annotatedInputId}
+                isActivePasteTarget={activePasteTarget === 'annotated'}
+                onMouseEnter={() => onSetActivePasteTarget?.('annotated')}
+                onMouseLeave={() => onSetActivePasteTarget?.(null)}
               />
             </div>
 

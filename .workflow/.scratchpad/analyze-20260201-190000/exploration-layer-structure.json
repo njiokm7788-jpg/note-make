@@ -1,0 +1,134 @@
+{
+  "angle": "layer-structure",
+  "findings": {
+    "structure": [
+      {
+        "component": "Entry Point Layer",
+        "type": "layer",
+        "description": "Application bootstrap and global configuration",
+        "files": ["src/main.tsx", "src/index.css"]
+      },
+      {
+        "component": "Presentation Layer",
+        "type": "layer",
+        "description": "UI components handling user interactions and rendering",
+        "files": [
+          "src/components/Sidebar.tsx",
+          "src/components/FloatingUploadButton.tsx",
+          "src/components/UploadStatusBar.tsx",
+          "src/components/UploadModal.tsx",
+          "src/components/UploadDrawer.tsx",
+          "src/components/ImageUploader.tsx",
+          "src/components/ImagePreview.tsx",
+          "src/components/ProcessingPanel.tsx",
+          "src/components/BatchProcessor.tsx"
+        ]
+      },
+      {
+        "component": "Orchestration Layer",
+        "type": "layer",
+        "description": "Central state manager and component coordinator",
+        "files": ["src/App.tsx"]
+      },
+      {
+        "component": "Utility/Business Logic Layer",
+        "type": "layer",
+        "description": "Core algorithms and file operations",
+        "files": ["src/utils/imageProcessor.ts", "src/utils/fileUtils.ts"]
+      }
+    ],
+    "patterns": [
+      {
+        "name": "Component-based UI Architecture",
+        "usage": "React functional components with clear separation of concerns",
+        "files": ["src/components/*.tsx"]
+      },
+      {
+        "name": "React Hooks Pattern",
+        "usage": "useState, useEffect, useCallback, useRef for state and lifecycle management",
+        "files": ["src/App.tsx", "src/components/*.tsx"]
+      },
+      {
+        "name": "Custom Hooks",
+        "usage": "useScreenSize for responsive design, useDebounce for performance optimization",
+        "files": ["src/App.tsx"]
+      },
+      {
+        "name": "Unidirectional Data Flow",
+        "usage": "Props flow down from App.tsx to child components, callbacks flow up",
+        "files": ["src/App.tsx"]
+      }
+    ],
+    "relationships": [
+      {
+        "from": "main.tsx",
+        "to": "App.tsx",
+        "type": "imports",
+        "strength": "high"
+      },
+      {
+        "from": "App.tsx",
+        "to": "components/*",
+        "type": "imports",
+        "strength": "high"
+      },
+      {
+        "from": "App.tsx",
+        "to": "utils/*",
+        "type": "imports",
+        "strength": "high"
+      },
+      {
+        "from": "components/*",
+        "to": "utils/*",
+        "type": "imports",
+        "strength": "medium"
+      }
+    ],
+    "key_files": [
+      {
+        "path": "src/App.tsx",
+        "relevance": 0.95,
+        "rationale": "Central orchestrator managing global state and component coordination"
+      },
+      {
+        "path": "src/main.tsx",
+        "relevance": 0.90,
+        "rationale": "Application entry point"
+      },
+      {
+        "path": "src/utils/imageProcessor.ts",
+        "relevance": 0.85,
+        "rationale": "Core business logic for image processing"
+      },
+      {
+        "path": "src/components/Sidebar.tsx",
+        "relevance": 0.75,
+        "rationale": "Main control panel for user options"
+      }
+    ]
+  },
+  "insights": [
+    {
+      "observation": "Three-layer architecture with clear separation between presentation, orchestration, and business logic",
+      "impact": "high",
+      "recommendation": "Maintain this clean separation to ensure maintainability"
+    },
+    {
+      "observation": "No circular dependencies detected",
+      "impact": "high",
+      "recommendation": "Continue following unidirectional data flow pattern"
+    },
+    {
+      "observation": "localStorage used for persistence without abstraction layer",
+      "impact": "medium",
+      "recommendation": "Consider creating a storage utility module for better testability"
+    }
+  ],
+  "_metadata": {
+    "exploration_angle": "layer-structure",
+    "exploration_index": 1,
+    "report_type": "architecture",
+    "timestamp": "2026-02-01T19:00:00Z"
+  }
+}

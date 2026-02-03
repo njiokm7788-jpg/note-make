@@ -1,0 +1,190 @@
+{
+  "angle": "module-dependencies",
+  "findings": {
+    "structure": [
+      {
+        "component": "Core Entry",
+        "type": "module",
+        "description": "Application bootstrap chain",
+        "files": ["src/main.tsx", "src/App.tsx"]
+      },
+      {
+        "component": "Utilities Layer",
+        "type": "module",
+        "description": "Business logic and file operations",
+        "files": ["src/utils/imageProcessor.ts", "src/utils/fileUtils.ts"]
+      },
+      {
+        "component": "Components Layer",
+        "type": "module",
+        "description": "UI components with specific functionalities",
+        "files": [
+          "src/components/ImagePreview.tsx",
+          "src/components/Sidebar.tsx",
+          "src/components/FloatingUploadButton.tsx",
+          "src/components/UploadModal.tsx",
+          "src/components/UploadDrawer.tsx",
+          "src/components/UploadStatusBar.tsx",
+          "src/components/ImageUploader.tsx",
+          "src/components/ProcessingPanel.tsx",
+          "src/components/BatchProcessor.tsx"
+        ]
+      }
+    ],
+    "patterns": [
+      {
+        "name": "Hub-and-Spoke Architecture",
+        "usage": "App.tsx acts as central orchestrator importing from utilities and components",
+        "files": ["src/App.tsx"]
+      },
+      {
+        "name": "Utility Sharing",
+        "usage": "imageProcessor.ts and fileUtils.ts provide shared functionality to multiple components",
+        "files": ["src/utils/imageProcessor.ts", "src/utils/fileUtils.ts"]
+      },
+      {
+        "name": "Type Exports",
+        "usage": "Utilities export TypeScript types (ProcessingOptions, Preset, ImagePair) for type safety",
+        "files": ["src/utils/imageProcessor.ts", "src/utils/fileUtils.ts"]
+      }
+    ],
+    "relationships": [
+      {
+        "from": "App.tsx",
+        "to": "imageProcessor.ts",
+        "type": "imports",
+        "strength": "high",
+        "details": "generatePreview, presets, loadUserPresets, addUserPreset, removeUserPreset, updateUserPreset, resetToDefaultPresets, ProcessingOptions, Preset"
+      },
+      {
+        "from": "App.tsx",
+        "to": "fileUtils.ts",
+        "type": "imports",
+        "strength": "medium",
+        "details": "downloadSingleResult"
+      },
+      {
+        "from": "Sidebar.tsx",
+        "to": "imageProcessor.ts",
+        "type": "imports",
+        "strength": "high",
+        "details": "ProcessingOptions, Preset types"
+      },
+      {
+        "from": "BatchProcessor.tsx",
+        "to": "fileUtils.ts",
+        "type": "imports",
+        "strength": "high",
+        "details": "generateId, getBaseName, isImageFile, downloadBatchResults, ImagePair"
+      },
+      {
+        "from": "BatchProcessor.tsx",
+        "to": "imageProcessor.ts",
+        "type": "imports",
+        "strength": "medium",
+        "details": "ProcessingOptions"
+      },
+      {
+        "from": "ImageUploader.tsx",
+        "to": "fileUtils.ts",
+        "type": "imports",
+        "strength": "low",
+        "details": "isImageFile"
+      },
+      {
+        "from": "UploadModal.tsx",
+        "to": "fileUtils.ts",
+        "type": "imports",
+        "strength": "low",
+        "details": "isImageFile"
+      },
+      {
+        "from": "fileUtils.ts",
+        "to": "imageProcessor.ts",
+        "type": "imports",
+        "strength": "high",
+        "details": "processImagePair, ProcessingOptions, defaultProcessingOptions"
+      }
+    ],
+    "key_files": [
+      {
+        "path": "src/App.tsx",
+        "relevance": 0.95,
+        "rationale": "Central hub with 11 connections - imports from 2 utilities and 9 components",
+        "connection_count": 11
+      },
+      {
+        "path": "src/utils/imageProcessor.ts",
+        "relevance": 0.90,
+        "rationale": "Core utility imported by 6 modules (App, Sidebar, BatchProcessor, fileUtils)",
+        "connection_count": 6
+      },
+      {
+        "path": "src/utils/fileUtils.ts",
+        "relevance": 0.85,
+        "rationale": "File operations utility imported by 5 modules (App, BatchProcessor, ImageUploader, UploadModal)",
+        "connection_count": 5
+      },
+      {
+        "path": "src/components/BatchProcessor.tsx",
+        "relevance": 0.70,
+        "rationale": "Complex component importing from both utilities",
+        "connection_count": 2
+      }
+    ],
+    "external_dependencies": [
+      {
+        "name": "react",
+        "version": "19.0.0",
+        "usage": "Core UI framework used by all components",
+        "files": ["src/App.tsx", "src/components/*.tsx"]
+      },
+      {
+        "name": "@tailwindcss/vite",
+        "version": "4.0.0",
+        "usage": "Utility-first CSS framework for styling",
+        "files": ["All components"]
+      },
+      {
+        "name": "jszip",
+        "version": "3.10.1",
+        "usage": "Creating zip archives for batch downloads",
+        "files": ["src/utils/fileUtils.ts"]
+      },
+      {
+        "name": "file-saver",
+        "version": "2.0.5",
+        "usage": "Client-side file download functionality",
+        "files": ["src/utils/fileUtils.ts"]
+      }
+    ]
+  },
+  "insights": [
+    {
+      "observation": "Clean acyclic dependency graph with no circular dependencies",
+      "impact": "high",
+      "recommendation": "Maintain this structure to ensure code maintainability and testability"
+    },
+    {
+      "observation": "Hub-and-spoke pattern with App.tsx as central orchestrator",
+      "impact": "high",
+      "recommendation": "Consider extracting some state management logic if App.tsx grows too large"
+    },
+    {
+      "observation": "Utilities are well-shared across components without duplication",
+      "impact": "medium",
+      "recommendation": "Continue using shared utilities for common functionality"
+    },
+    {
+      "observation": "fileUtils.ts depends on imageProcessor.ts, creating a utility-to-utility dependency",
+      "impact": "low",
+      "recommendation": "This is acceptable for batch processing, but monitor for potential circular dependencies"
+    }
+  ],
+  "_metadata": {
+    "exploration_angle": "module-dependencies",
+    "exploration_index": 2,
+    "report_type": "architecture",
+    "timestamp": "2026-02-01T19:00:00Z"
+  }
+}

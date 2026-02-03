@@ -1,0 +1,114 @@
+{
+  "symptom": {
+    "description": "在单张模式下，粘贴上传功能无法正常工作。用户在单张模式下使用 Ctrl+V 粘贴图片时，UploadModal 不会打开，图片无法被上传到应用中。",
+    "error_message": null,
+    "stack_trace": null,
+    "frequency": "always",
+    "user_impact": "用户无法使用粘贴快捷方式上传图片，必须手动点击 FloatingUploadButton 打开 UploadModal，降低了用户体验和操作效率。"
+  },
+  "root_cause": {
+    "file": "src/App.tsx",
+    "line_range": "201-205",
+    "function": "useEffect (mode change handler)",
+    "issue": "存在状态管理竞态条件：当 mode 状态变化时，useEffect (lines 201-205) 会强制关闭 drawer (setIsDrawerOpen(false))。由于 paste handler (lines 239-280) 的依赖数组包含 mode，当 mode 变化时 paste handler 会重新创建，但此时 isDrawerOpen 状态可能已被 mode change effect 重置为 false。更关键的是，paste handler 中的 setIsDrawerOpen(true) (line 259) 可能在 mode change effect 执行后立即被覆盖，导致 drawer 无法打开。",
+    "confidence": 0.85,
+    "introduced_by": "Unknown (需要 git blame 确认)",
+    "category": "race_condition"
+  },
+  "affected_files": [
+    {
+      "path": "src/App.tsx",
+      "relevance": 0.95,
+      "rationale": "包含 mode 状态管理、isDrawerOpen 状态管理、paste event handler 以及 mode change effect，是状态竞态条件的核心文件",
+      "change_type": "fix_target"
+    },
+    {
+      "path": "src/components/UploadModal.tsx",
+      "relevance": 0.60,
+      "rationale": "受 isDrawerOpen 状态控制，是状态变化的最终表现层，需要验证其 isOpen prop 的响应行为",
+      "change_type": "reference_only"
+    },
+    {
+      "path": "src/components/FloatingUploadButton.tsx",
+      "relevance": 0.45,
+      "rationale": "提供手动打开 UploadModal 的替代方式，可用于对比验证状态管理逻辑",
+      "change_type": "reference_only"
+    }
+  ],
+  "reproduction_steps": [
+    "启动应用，确保当前处于单张处理模式 (mode === 'single')",
+    "复制一张图片到剪贴板 (例如从文件管理器或浏览器复制)",
+    "在应用窗口中按 Ctrl+V 进行粘贴",
+    "观察：UploadModal 不会打开，控制台可能显示 toast 提示但 drawer 状态未改变",
+    "对比：点击 FloatingUploadButton 可以正常打开 UploadModal"
+  ],
+  "fix_hints": [
+    {
+      "description": "移除 mode change effect 中对 isDrawerOpen 的强制关闭",
+      "approach": "删除或修改 lines 201-205 的 useEffect，仅在 mode 切换到 batch 时关闭 drawer，而不是在每次 mode 变化时都关闭。或者添加条件判断，只在从 single 切换到 batch 时关闭。",
+      "code_example": "// 修改前\nuseEffect(() => {\n  if (mode !== 'single') {\n    setIsDrawerOpen(false);\n  }\n}, [mode]);\n\n// 修改后 (方案 1: 仅在切换到 batch 时关闭)\nuseEffect(() => {\n  if (mode === 'batch') {\n    setIsDrawerOpen(false);\n  }\n}, [mode]);\n\n// 修改后 (方案 2: 使用 ref 追踪上一个 mode)\nconst prevModeRef = useRef<Mode>(mode);\nuseEffect(() => {\n  if (prevModeRef.current === 'single' && mode === 'batch') {\n    setIsDrawerOpen(false);\n  }\n  prevModeRef.current = mode;\n}, [mode]);",
+      "risk": "low"
+    },
+    {
+      "description": "调整 paste handler 的依赖数组，避免 mode 变化时重新创建 handler",
+      "approach": "从 paste handler useEffect 的依赖数组中移除 mode，改为在 handler 内部使用 ref 来访问最新的 mode 值，避免 handler 因 mode 变化而重新注册。",
+      "code_example": "// 使用 ref 存储 mode\nconst modeRef = useRef(mode);\nuseEffect(() => {\n  modeRef.current = mode;\n}, [mode]);\n\n// paste handler 不依赖 mode\nuseEffect(() => {\n  const handlePaste = (e: ClipboardEvent) => {\n    // ...\n    if (modeRef.current !== 'single') return;\n    // ...\n  };\n  document.addEventListener('paste', handlePaste);\n  return () => document.removeEventListener('paste', handlePaste);\n}, [originalFile, annotatedFile, showToast]); // 移除 mode",
+      "risk": "low"
+    },
+    {
+      "description": "使用 setState 的函数式更新确保状态一致性",
+      "approach": "在 paste handler 中使用 setIsDrawerOpen(prev => true) 而不是 setIsDrawerOpen(true)，确保状态更新基于最新的状态值，避免被其他 effect 覆盖。",
+      "code_example": "// 修改前\nsetIsDrawerOpen(true);\n\n// 修改后\nsetIsDrawerOpen(prev => {\n  console.log('Paste: setting drawer open from', prev, 'to true');\n  return true;\n});",
+      "risk": "low"
+    },
+    {
+      "description": "添加调试日志追踪状态变化时序",
+      "approach": "在 mode change effect 和 paste handler 中添加 console.log，追踪 isDrawerOpen 状态的变化时序，确认竞态条件的具体发生时机。",
+      "code_example": "// mode change effect\nuseEffect(() => {\n  console.log('[Mode Change] mode:', mode, 'closing drawer');\n  if (mode !== 'single') {\n    setIsDrawerOpen(false);\n  }\n}, [mode]);\n\n// paste handler\nconst handlePaste = (e: ClipboardEvent) => {\n  // ...\n  console.log('[Paste] mode:', mode, 'opening drawer');\n  setIsDrawerOpen(true);\n  // ...\n};",
+      "risk": "low"
+    }
+  ],
+  "dependencies": "React hooks (useState, useEffect, useRef, useCallback) 的执行顺序和依赖数组机制。浏览器 ClipboardEvent API 和 document.addEventListener 的事件处理机制。",
+  "constraints": "必须保持 mode 切换时的正确行为（从 single 切换到 batch 时应关闭 drawer）。不能破坏现有的 paste 功能逻辑（智能填充原图/标注图）。需要确保 paste handler 在 single mode 下始终能正确响应。",
+  "related_issues": [
+    {
+      "type": "similar_bug",
+      "reference": "lines 201-205 (mode change effect)",
+      "description": "mode change effect 可能与其他状态管理逻辑存在类似的竞态条件"
+    },
+    {
+      "type": "tech_debt",
+      "reference": "paste handler dependencies",
+      "description": "paste handler 的依赖数组过于复杂，包含 mode, originalFile, annotatedFile, showToast，容易导致不必要的重新注册"
+    }
+  ],
+  "clarification_needs": [
+    {
+      "question": "mode change effect 的设计意图是什么？是否需要在每次 mode 变化时都关闭 drawer？",
+      "context": "当前 lines 201-205 的 useEffect 会在 mode !== 'single' 时关闭 drawer。这可能是为了防止在 batch mode 下显示 single mode 的 UploadModal，但这个逻辑可能过于激进，导致在 single mode 下也会触发不必要的状态重置。",
+      "options": [
+        "仅在从 single 切换到 batch 时关闭 drawer（推荐）",
+        "完全移除 mode change effect，依赖条件渲染 (mode === 'single' && ...)",
+        "保持现有逻辑，但调整 paste handler 的实现方式"
+      ]
+    },
+    {
+      "question": "paste handler 是否需要在 mode 变化时重新注册？",
+      "context": "当前 paste handler 的依赖数组包含 mode，这意味着每次 mode 变化时都会重新注册事件监听器。这可能不是必要的，因为 handler 内部已经有 mode 检查逻辑。",
+      "options": [
+        "使用 ref 存储 mode，从依赖数组中移除 mode（推荐）",
+        "保持现有依赖数组，但调整 mode change effect 的执行时机",
+        "将 paste handler 拆分为多个独立的 effect"
+      ]
+    }
+  ],
+  "_metadata": {
+    "timestamp": "2026-02-01T15:40:00.000Z",
+    "bug_description": "在单张模式下，粘贴上传不能用",
+    "source": "cli-explore-agent",
+    "diagnosis_angle": "state-management",
+    "diagnosis_index": 2,
+    "total_diagnoses": 2,
+    "duration_seconds": 180
+  }
+}

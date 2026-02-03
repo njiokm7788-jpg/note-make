@@ -1,0 +1,65 @@
+{
+  "project_structure": "React SPA with component-based architecture. UI layer in src/components/ with ImagePreview, Sidebar, ProcessingPanel as key preview-related components. App.tsx orchestrates state and renders preview grid. Tailwind CSS 4.0 for styling with utility-first approach. Preview system uses 4-panel grid layout (2x2) in comparison mode, single centered panel in simplified mode.",
+  "relevant_files": [
+    {
+      "path": "src/App.tsx",
+      "relevance": 0.95,
+      "rationale": "Main preview rendering location. Lines 528-586 contain the preview grid with ImagePreview components. showComparison state toggles between simplified (single result) and comparison (4-panel grid) views. This is where the new annotated+color-block preview would be added."
+    },
+    {
+      "path": "src/components/ImagePreview.tsx",
+      "relevance": 0.9,
+      "rationale": "Reusable preview component with title, subtitle, checkered transparency background, and zoom modal. Props: src (string), title (string), subtitle (optional string). Used consistently across all preview panels. New preview would use this same component."
+    },
+    {
+      "path": "src/utils/imageProcessor.ts",
+      "relevance": 0.85,
+      "rationale": "generatePreview function (lines 427-471) returns preview data URLs. Currently returns: original, annotated, annotationLayer, result. Would need to add new 'annotatedWithColorBlock' field for the new preview type."
+    },
+    {
+      "path": "src/components/Sidebar.tsx",
+      "relevance": 0.5,
+      "rationale": "Contains color block settings UI (blockColor, blockOpacity). Understanding these controls helps ensure the new preview accurately reflects user-selected color block settings."
+    },
+    {
+      "path": "src/components/ProcessingPanel.tsx",
+      "relevance": 0.4,
+      "rationale": "Alternative settings panel with same color block controls. Shows consistent UI pattern for color picker and opacity slider that the new preview should reflect."
+    }
+  ],
+  "patterns": "UI Patterns Identified:\n\n1. **ImagePreview Component Pattern** (src/components/ImagePreview.tsx:9-63):\n   - Consistent props interface: { src: string, title: string, subtitle?: string }\n   - Checkered background for transparency: CSS linear-gradient pattern at 20px size\n   - Hover zoom hint with click-to-zoom modal\n   - Tailwind classes: 'bg-slate-100 rounded-xl overflow-hidden border border-slate-200'\n\n2. **Preview Grid Layout** (src/App.tsx:579-584):\n   - 2x2 grid using 'grid grid-cols-2 gap-4'\n   - Each ImagePreview fills one grid cell\n   - Titles follow pattern: '原始图片', 'AI标注图片', '提取的标注层', '最终结果'\n\n3. **View Toggle Pattern** (src/App.tsx:531-586):\n   - showComparison state boolean controls view mode\n   - Simplified view: single centered ImagePreview with max-w-2xl\n   - Comparison view: 4-panel grid with toggle button\n   - Button pattern: 'px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200'\n\n4. **Preview State Structure** (src/App.tsx:150-155):\n   - preview state object with typed fields: { original, annotated, annotationLayer, result }\n   - All fields are base64 data URLs from imageDataToDataURL()\n\n5. **Color Block Styling** (src/components/Sidebar.tsx:511-524):\n   - Color swatches: 'w-6 h-6 rounded border-2' with conditional 'border-purple-500 scale-110'\n   - Preset colors: ['#FFFF00', '#90EE90', '#FFB6C1', '#87CEEB', '#FFA94D', '#B197FC']",
+  "dependencies": "Internal Dependencies:\n- ImagePreview component from './components/ImagePreview'\n- generatePreview function from './utils/imageProcessor'\n- ProcessingOptions type from './utils/imageProcessor'\n\nExternal Dependencies:\n- React hooks: useState, useCallback, useEffect\n- Tailwind CSS 4.0 for all styling\n- No additional UI libraries needed for preview functionality",
+  "integration_points": "1. **Preview State Extension** (src/App.tsx:150-155):\n   - Add new field to preview state type: annotatedWithColorBlock: string\n   - Location: Line 150-155 preview state definition\n\n2. **generatePreview Return Extension** (src/utils/imageProcessor.ts:431-436):\n   - Add annotatedWithColorBlock to return type\n   - Location: Lines 431-436 return type definition\n   - Location: Lines 465-470 return object\n\n3. **Comparison Grid Extension** (src/App.tsx:579-584):\n   - Current: 2x2 grid with 4 panels\n   - Options: Expand to 3x2 (6 panels) or add 5th panel below\n   - Location: Lines 579-584 grid rendering\n\n4. **ImagePreview Usage** (src/App.tsx:580-583):\n   - Pattern: <ImagePreview src={preview.fieldName} title=\"标题\" subtitle=\"副标题\" />\n   - New panel would follow same pattern with src={preview.annotatedWithColorBlock}",
+  "constraints": "1. **Grid Layout Constraint**: Current 2x2 grid (grid-cols-2) works well for 4 panels. Adding 5th panel requires layout decision - either 3x2 grid or asymmetric layout.\n\n2. **Performance Constraint**: Each preview is a full-resolution data URL. Adding another preview increases memory usage and processing time in generatePreview().\n\n3. **Responsive Design**: Preview grid must remain responsive. Current max-h-[60vh] on images ensures they fit viewport.\n\n4. **Consistency Constraint**: New preview must use ImagePreview component with same styling pattern (checkered background, zoom capability).\n\n5. **Naming Convention**: Chinese titles used throughout ('原始图片', 'AI标注图片', etc.). New preview title should follow same convention.",
+  "clarification_needs": [
+    {
+      "question": "新预览面板应该如何布局？",
+      "context": "当前对比视图使用 2x2 四宫格布局。添加第5个预览面板需要调整布局。可以改为 3x2 六宫格（留一个空位），或者在四宫格下方单独添加一行。",
+      "options": [
+        "3x2 六宫格布局（第6格留空或显示其他信息）",
+        "在四宫格下方添加单独一行显示新预览",
+        "替换现有的'提取的标注层'预览，保持四宫格"
+      ],
+      "recommended": 1
+    },
+    {
+      "question": "新预览的标题应该是什么？",
+      "context": "现有预览标题遵循中文命名：'原始图片'、'AI标注图片'、'提取的标注层'、'最终结果'。新预览需要一个清晰描述其内容的标题。",
+      "options": [
+        "标注图+色块",
+        "色块叠加预览",
+        "AI标注色块效果"
+      ],
+      "recommended": 0
+    }
+  ],
+  "_metadata": {
+    "timestamp": "2026-02-01T12:00:00.000Z",
+    "task_description": "在预览框添加标注图片添加色块后的预览 (Add preview of annotated image with color blocks in preview panel)",
+    "source": "cli-explore-agent",
+    "exploration_angle": "ui-patterns",
+    "exploration_index": 3,
+    "total_explorations": 3,
+    "duration_seconds": 45
+  }
+}

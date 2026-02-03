@@ -1,0 +1,27 @@
+{
+  "session_id": "preview-annotated-color-block-2026-02-01",
+  "task_description": "在预览框添加标注图片添加色块后的预览",
+  "timestamp": "2026-02-01T23:30:00.000Z",
+  "complexity": "Medium",
+  "exploration_count": 3,
+  "explorations": [
+    {
+      "angle": "patterns",
+      "file": "exploration-patterns.json",
+      "path": ".workflow/.lite-plan/preview-annotated-color-block-2026-02-01/exploration-patterns.json",
+      "index": 1
+    },
+    {
+      "angle": "integration-points",
+      "file": "exploration-integration-points.json",
+      "path": ".workflow/.lite-plan/preview-annotated-color-block-2026-02-01/exploration-integration-points.json",
+      "index": 2
+    },
+    {
+      "angle": "ui-patterns",
+      "file": "exploration-ui-patterns.json",
+      "path": ".workflow/.lite-plan/preview-annotated-color-block-2026-02-01/exploration-ui-patterns.json",
+      "index": 3
+    }
+  ]
+}

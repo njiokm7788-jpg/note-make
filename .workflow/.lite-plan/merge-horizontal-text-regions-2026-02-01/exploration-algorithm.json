@@ -1,0 +1,40 @@
+{
+  "project_structure": {
+    "relevant_modules": ["src/utils/imageProcessor.ts"],
+    "architecture": "单文件工具模块，无外部依赖"
+  },
+  "relevant_files": [
+    {
+      "path": "src/utils/imageProcessor.ts",
+      "relevance": 0.95,
+      "rationale": "核心图像处理逻辑，包含 extractTextMask 函数需要修改"
+    }
+  ],
+  "patterns": {
+    "text_detection": "基于亮度阈值 (ITU-R BT.601) 检测文字像素",
+    "mask_expansion": "圆形膨胀 (欧几里得距离) 扩展遮罩边界",
+    "color_blending": "正片叠底混合模式应用色块"
+  },
+  "dependencies": [],
+  "integration_points": [
+    {
+      "location": "src/utils/imageProcessor.ts:178-226",
+      "description": "extractTextMask 函数 - 需要添加行级别合并逻辑"
+    },
+    {
+      "location": "src/utils/imageProcessor.ts:233-280",
+      "description": "applyColorBlock 函数 - 使用 textMask，无需修改"
+    }
+  ],
+  "constraints": [
+    "保持现有 ProcessingOptions 接口不变",
+    "保持向后兼容性",
+    "不影响其他函数的行为"
+  ],
+  "clarification_needs": [],
+  "_metadata": {
+    "exploration_angle": "algorithm",
+    "exploration_index": 1,
+    "timestamp": "2026-02-01T18:30:00.000Z"
+  }
+}

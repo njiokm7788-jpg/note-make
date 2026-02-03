@@ -1,0 +1,21 @@
+{
+  "session_id": "paste-upload-single-mode-2026-02-01",
+  "bug_description": "在单张模式下,粘贴上传不能用",
+  "timestamp": "2026-02-01T15:40:00.000Z",
+  "severity": "Medium",
+  "diagnosis_count": 2,
+  "diagnoses": [
+    {
+      "angle": "event-handling",
+      "file": "diagnosis-event-handling.json",
+      "path": ".workflow/.lite-fix/paste-upload-single-mode-2026-02-01/diagnosis-event-handling.json",
+      "index": 1
+    },
+    {
+      "angle": "state-management",
+      "file": "diagnosis-state-management.json",
+      "path": ".workflow/.lite-fix/paste-upload-single-mode-2026-02-01/diagnosis-state-management.json",
+      "index": 2
+    }
+  ]
+}

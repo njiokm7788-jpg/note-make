@@ -1,0 +1,70 @@
+{
+  "summary": "修复 ImageZoomModal 组件中拖动操作被误判为点击的问题。通过添加拖动距离阈值和拖动完成标志,区分真实的拖动操作和点击操作,防止拖动后意外关闭预览。",
+  "root_cause": "ImageZoomModal 组件的事件处理逻辑存在缺陷:onClick 处理器在拖动操作完成后仍会触发,因为 isDragging 状态在 mouseUp 时立即重置,无法区分拖动完成和真实点击。缺少拖动距离阈值判断和拖动完成标志,导致任何 mousedown → mousemove → mouseup → click 序列都会触发关闭。",
+  "strategy": "immediate_patch",
+  "tasks": [
+    {
+      "id": "FIX1",
+      "title": "添加拖动距离追踪和阈值判断",
+      "scope": "src/components/ImagePreview.tsx",
+      "action": "Fix",
+      "description": "在 ImageZoomModal 组件中添加 dragDistanceRef 和 hasDraggedRef 来追踪拖动距离,只有当移动距离超过阈值(5px)时才认为是拖动操作。",
+      "modification_points": [
+        {
+          "file": "src/components/ImagePreview.tsx",
+          "target": "ImageZoomModal:71-205",
+          "change": "添加 dragDistanceRef 和 hasDraggedRef,修改 handleMouseDown/Move/Up 逻辑"
+        }
+      ],
+      "implementation": [
+        "在 ImageZoomModal 组件顶部添加两个 ref: const dragDistanceRef = useRef(0); const hasDraggedRef = useRef(false);",
+        "修改 handleMouseDown (line 83-87): 初始化 dragDistanceRef.current = 0 和 hasDraggedRef.current = false",
+        "修改 handleMouseMove (line 89-97): 计算累积移动距离 dragDistanceRef.current += Math.abs(deltaX) + Math.abs(deltaY); 当距离超过 5px 时设置 hasDraggedRef.current = true",
+        "修改 handleMouseUp (line 99-101): 添加 e.stopPropagation() 防止事件冒泡到 onClick 处理器",
+        "修改 onClick 处理器 (line 168): 添加条件 !hasDraggedRef.current && e.target === e.currentTarget && onClose()"
+      ],
+      "verification": [
+        "打开图片放大预览,点击背景区域应正常关闭",
+        "在放大预览中拖动图片(移动距离 >5px),释放鼠标后预览应保持打开",
+        "在放大预览中点击图片本身(非背景),预览应保持打开"
+      ],
+      "reference": {
+        "pattern": "drag-click-distinction",
+        "files": [
+          "src/components/FloatingUploadButton.tsx"
+        ],
+        "examples": "参考 FloatingUploadButton.tsx 的 lines 54-75, 88-89 实现,使用 hasDraggedRef 来区分拖动和点击"
+      },
+      "risk": "low",
+      "cli_execution_id": "preview-drag-fix-FIX1",
+      "cli_execution": {
+        "strategy": "new"
+      }
+    }
+  ],
+  "focus_paths": [
+    "src/components/ImagePreview.tsx"
+  ],
+  "test_strategy": {
+    "scope": "manual",
+    "manual_verification": [
+      "测试场景1: 点击背景关闭 - 打开放大预览,点击背景区域(非图片),验证预览正常关闭",
+      "测试场景2: 拖动不关闭 - 打开放大预览,拖动图片移动 >5px,释放鼠标,验证预览保持打开",
+      "测试场景3: 微小移动视为点击 - 打开放大预览,鼠标按下后移动 <5px 再释放,验证预览关闭(视为点击)",
+      "测试场景4: 点击图片不关闭 - 打开放大预览,点击图片本身,验证预览保持打开"
+    ]
+  },
+  "estimated_time": "15 minutes",
+  "recommended_execution": "Agent",
+  "severity": "Medium",
+  "risk_level": "low",
+  "_metadata": {
+    "timestamp": "2026-02-04T08:00:00.000Z",
+    "source": "direct-planning",
+    "planning_mode": "direct",
+    "diagnosis_angles": [
+      "event-handling",
+      "state-management"
+    ]
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "symptom": {
+    "description": "在单张模式下，粘贴上传功能不能正常工作。用户在单张处理模式下使用 Ctrl+V 粘贴图片时，图片无法被上传到应用中。",
+    "error_message": null,
+    "stack_trace": null,
+    "frequency": "always",
+    "user_impact": "用户无法使用快捷的粘贴功能上传图片，必须通过点击上传按钮手动选择文件，降低了用户体验和操作效率。"
+  },
+  "root_cause": {
+    "file": "src/App.tsx",
+    "line_range": "239-280",
+    "function": "handlePaste (useEffect callback)",
+    "issue": "粘贴事件处理器的依赖数组 [mode, originalFile, annotatedFile, showToast] 缺少关键依赖。当 mode 从 'batch' 切换到 'single' 时，useEffect 不会重新注册事件监听器，导致闭包中捕获的是旧的 mode 值（'batch'），使得第 249 行的条件检查 `if (mode !== 'single') return;` 始终为真，阻止了粘贴功能的执行。",
+    "confidence": 0.9,
+    "introduced_by": "unknown (需要检查 git history 确定引入时间)",
+    "category": "logic_error"
+  },
+  "affected_files": [
+    {
+      "path": "src/App.tsx",
+      "relevance": 0.95,
+      "rationale": "包含粘贴事件处理器的注册逻辑（lines 239-280），是 bug 的直接来源。useEffect 的依赖数组不完整导致闭包陈旧问题。",
+      "change_type": "fix_target"
+    },
+    {
+      "path": "src/components/UploadModal.tsx",
+      "relevance": 0.3,
+      "rationale": "粘贴功能会触发 UploadModal 的打开（通过 setIsDrawerOpen），但该组件本身没有问题，仅作为粘贴功能的下游组件。",
+      "change_type": "reference_only"
+    },
+    {
+      "path": "src/components/FloatingUploadButton.tsx",
+      "relevance": 0.2,
+      "rationale": "显示上传状态，与粘贴功能间接相关，但不涉及事件处理逻辑。",
+      "change_type": "reference_only"
+    }
+  ],
+  "reproduction_steps": [
+    "1. 打开应用，确保当前处于批量处理模式（batch mode）",
+    "2. 切换到单张处理模式（single mode）- 点击顶部的'单张处理'按钮",
+    "3. 复制一张图片到剪贴板（例如从文件管理器或截图工具）",
+    "4. 在应用页面中按 Ctrl+V 尝试粘贴图片",
+    "5. 观察：图片没有被上传，UploadModal 没有打开，也没有任何 toast 提示",
+    "6. 对比：如果应用启动时就在单张模式，或者刷新页面后直接在单张模式，粘贴功能可能正常工作（因为初始 mode 值正确）"
+  ],
+  "fix_hints": [
+    {
+      "description": "修复 useEffect 依赖数组，确保 mode 变化时重新注册事件监听器",
+      "approach": "在 App.tsx 第 280 行的 useEffect 依赖数组中移除不必要的依赖，或者确保所有在回调中使用的状态都包含在依赖数组中。由于 handlePaste 回调使用了 mode, originalFile, annotatedFile, showToast，这些都应该在依赖数组中。当前依赖数组已经包含这些，但问题可能在于 React 的闭包更新机制。",
+      "code_example": "// 方案 1: 使用 useCallback 包装 showToast，确保其稳定引用\nconst showToast = useCallback((message: string, type: 'success' | 'info' = 'success') => {\n  setToast({ message, type });\n  setTimeout(() => setToast(null), 2000);\n}, []); // 空依赖数组，因为 setToast 是稳定的\n\n// 方案 2: 在 useEffect 中使用 ref 存储最新的 mode 值\nconst modeRef = useRef(mode);\nuseEffect(() => { modeRef.current = mode; }, [mode]);\n\n// 然后在 handlePaste 中使用 modeRef.current\nif (modeRef.current !== 'single') return;\n\n// 方案 3: 简化依赖，只在 mode 变化时重新注册\nuseEffect(() => {\n  if (mode !== 'single') return; // 只在 single 模式下注册\n  \n  const handlePaste = (e: ClipboardEvent) => {\n    // ... 粘贴处理逻辑\n  };\n  \n  document.addEventListener('paste', handlePaste);\n  return () => document.removeEventListener('paste', handlePaste);\n}, [mode]); // 只依赖 mode",
+      "risk": "low"
+    },
+    {
+      "description": "验证事件监听器的注册和清理逻辑",
+      "approach": "添加 console.log 或调试断点，确认当 mode 从 'batch' 切换到 'single' 时，useEffect 是否正确执行了清理函数并重新注册了事件监听器。检查是否存在多个监听器同时存在的情况。",
+      "code_example": "useEffect(() => {\n  console.log('[Paste] Registering paste handler, mode:', mode);\n  \n  const handlePaste = (e: ClipboardEvent) => {\n    console.log('[Paste] Event triggered, current mode:', mode);\n    // ... 原有逻辑\n  };\n  \n  document.addEventListener('paste', handlePaste);\n  return () => {\n    console.log('[Paste] Cleaning up paste handler');\n    document.removeEventListener('paste', handlePaste);\n  };\n}, [mode, originalFile, annotatedFile, showToast]);",
+      "risk": "low"
+    },
+    {
+      "description": "考虑使用全局状态管理或 Context 来避免闭包陈旧问题",
+      "approach": "如果应用规模扩大，考虑使用 React Context 或状态管理库（如 Zustand）来管理 mode 状态，避免在多个 useEffect 中传递依赖导致的闭包问题。",
+      "code_example": "// 使用 Context\nconst AppContext = createContext<{ mode: Mode }>({ mode: 'single' });\n\n// 在 handlePaste 中\nconst { mode } = useContext(AppContext);\nif (mode !== 'single') return;",
+      "risk": "medium"
+    }
+  ],
+  "dependencies": "React hooks (useState, useEffect, useCallback), ClipboardEvent API, localStorage (用于持久化状态)",
+  "constraints": "必须保持向后兼容性，不能破坏现有的粘贴功能。修复应该只影响事件处理逻辑，不应改变 UI 行为或其他功能。需要确保在所有模式切换场景下（single ↔ batch）粘贴功能都能正常工作。",
+  "related_issues": [
+    {
+      "type": "similar_bug",
+      "reference": "src/App.tsx:201-205",
+      "description": "另一个 useEffect 在 mode 变化时关闭 drawer，这个逻辑正常工作，说明 mode 状态本身没有问题，问题确实在于粘贴事件处理器的闭包。"
+    },
+    {
+      "type": "related_feature",
+      "reference": "src/App.tsx:362-400",
+      "description": "键盘快捷键处理器（Ctrl+S, Space, Escape）也使用了类似的 useEffect 模式，但依赖数组不同。需要检查这些是否也存在类似问题。"
+    }
+  ],
+  "clarification_needs": [
+    {
+      "question": "粘贴功能是否在应用首次加载时（默认 single 模式）正常工作？",
+      "context": "如果首次加载时粘贴功能正常，但模式切换后失效，这将确认问题是闭包陈旧导致的。如果首次加载时也不工作，可能存在其他问题（如权限、浏览器兼容性）。",
+      "options": [
+        "首次加载时粘贴功能正常，切换模式后失效",
+        "首次加载时粘贴功能就不工作",
+        "不确定，需要测试验证"
+      ]
+    },
+    {
+      "question": "是否需要在批量模式下也支持粘贴功能？",
+      "context": "当前代码明确禁止在批量模式下使用粘贴（line 249: if (mode !== 'single') return），这是设计决策还是未来可能需要支持的功能？如果需要支持，修复方案会有所不同。",
+      "options": [
+        "只需要在单张模式下支持粘贴",
+        "未来可能需要在批量模式下也支持粘贴",
+        "批量模式下粘贴应该有不同的行为（如添加到批量列表）"
+      ]
+    },
+    {
+      "question": "showToast 函数是否应该使用 useCallback 包装？",
+      "context": "showToast 函数在每次渲染时都会重新创建（lines 165-168），这会导致依赖它的 useEffect 在每次渲染时都重新执行。使用 useCallback 可以稳定其引用，减少不必要的事件监听器重新注册。",
+      "options": [
+        "是，应该使用 useCallback 包装 showToast",
+        "否，保持当前实现，通过其他方式修复",
+        "需要评估性能影响后决定"
+      ]
+    }
+  ],
+  "_metadata": {
+    "timestamp": "2026-02-01T15:37:00.000Z",
+    "bug_description": "在单张模式下，粘贴上传不能用",
+    "source": "cli-explore-agent",
+    "diagnosis_angle": "event-handling",
+    "diagnosis_index": 1,
+    "total_diagnoses": 2,
+    "duration_seconds": 180
+  }
+}

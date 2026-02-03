@@ -1,0 +1,127 @@
+{
+  "project_structure": "Layered React architecture with centralized state management in App.tsx. Single mode uses Sidebar with full preset management; batch mode uses inline ProcessingPanel with automatic preset saving. Upload components (UploadModal, UploadDrawer) share UploadDropZone pattern with separate zones for original/annotated images.",
+  "relevant_files": [
+    {
+      "path": "src/App.tsx",
+      "relevance": 0.95,
+      "rationale": "Central state manager with mode-specific parameter handling. Lines 198-203 show handleBatchOptionChange auto-saves to selected preset. Lines 85-95 manage mode switching and parameter persistence."
+    },
+    {
+      "path": "src/components/BatchProcessor.tsx",
+      "relevance": 0.90,
+      "rationale": "Implements file pairing pattern using regex-based filename matching (lines 26-37). Identifies annotated images via _annotated|_marked|_标注 patterns and pairs with originals."
+    },
+    {
+      "path": "src/components/UploadModal.tsx",
+      "relevance": 0.88,
+      "rationale": "Uses UploadDropZone component pattern with separate zones for original (lines 45-70) and annotated (lines 72-97) images. Implements drag-and-drop, file preview, and validation."
+    },
+    {
+      "path": "src/components/UploadDrawer.tsx",
+      "relevance": 0.88,
+      "rationale": "Shares identical UploadDropZone pattern with UploadModal. Separate drop zones for original/annotated images with consistent validation logic."
+    },
+    {
+      "path": "src/components/ProcessingPanel.tsx",
+      "relevance": 0.85,
+      "rationale": "Batch mode parameter UI. Receives options and onChange callback. Needs to match Sidebar's preset management capabilities for consistency."
+    },
+    {
+      "path": "src/components/Sidebar.tsx",
+      "relevance": 0.82,
+      "rationale": "Single mode parameter UI with full preset management (add, remove, update, reset). Lines 120-180 show preset controls that batch mode currently lacks."
+    }
+  ],
+  "patterns": [
+    {
+      "name": "UploadDropZone Reusable Component",
+      "description": "Both UploadModal and UploadDrawer use internal UploadDropZone component with separate zones for original and annotated images",
+      "example": "const UploadDropZone = ({ type, file, onSelect, onRemove }) => { /* drag-and-drop, preview, validation */ }",
+      "usage": "Consistent upload UX across modal and drawer interfaces"
+    },
+    {
+      "name": "Mode-Specific Parameter Handling",
+      "description": "Single mode uses Sidebar with full preset management; batch mode uses ProcessingPanel with auto-save to selected preset",
+      "example": "handleBatchOptionChange: (newOptions) => { setOptions(newOptions); if (selectedPreset) updateUserPreset(selectedPreset, newOptions); }",
+      "usage": "Different UI/logic for single vs batch modes, but parameters should remain synchronized"
+    },
+    {
+      "name": "File Pairing by Filename",
+      "description": "BatchProcessor uses regex patterns to identify annotated images and match with originals",
+      "example": "const annotatedPattern = /_annotated|_marked|_标注/; const baseName = fileName.replace(annotatedPattern, '');",
+      "usage": "Automatic pairing of original and annotated images in batch processing"
+    },
+    {
+      "name": "Preset Auto-Save",
+      "description": "Batch mode automatically saves parameter changes to the selected preset",
+      "example": "if (selectedPreset) { updateUserPreset(selectedPreset, newOptions); }",
+      "usage": "Ensures batch mode parameter changes persist to presets"
+    }
+  ],
+  "dependencies": {
+    "internal": [
+      "imageProcessor.ts: ProcessingOptions interface, Preset type, preset management functions",
+      "fileUtils.ts: isImageFile validation, file naming utilities"
+    ],
+    "external": [
+      "react: useState, useCallback for state management",
+      "react-dom: File input and drag-and-drop events"
+    ]
+  },
+  "integration_points": [
+    {
+      "location": "src/App.tsx:198-203",
+      "description": "handleBatchOptionChange callback - auto-saves to selected preset",
+      "relevance": "high"
+    },
+    {
+      "location": "src/App.tsx:85-95",
+      "description": "Mode switching logic - manages parameter persistence between single/batch modes",
+      "relevance": "high"
+    },
+    {
+      "location": "src/components/BatchProcessor.tsx:26-37",
+      "description": "File pairing logic - regex-based matching of original/annotated images",
+      "relevance": "medium"
+    },
+    {
+      "location": "src/components/UploadModal.tsx:45-97",
+      "description": "UploadDropZone pattern - separate zones for original and annotated images",
+      "relevance": "high"
+    }
+  ],
+  "constraints": [
+    "Must maintain parameter consistency between single and batch modes",
+    "Batch mode parameter changes must auto-save to selected preset",
+    "Upload windows must use consistent UploadDropZone pattern",
+    "File pairing logic should be consistent with BatchProcessor's regex patterns",
+    "Preserve existing drag-and-drop and file validation behavior"
+  ],
+  "clarification_needs": [
+    {
+      "question": "批量模式的参数设置界面应该使用哪种方式？",
+      "context": "当前单张模式使用 Sidebar（完整的预设管理），批量模式使用 ProcessingPanel（简化版）。需要确定批量模式是否需要完整的预设管理功能。",
+      "options": [
+        "保持当前 ProcessingPanel（简化版，仅参数调整）",
+        "使用完整 Sidebar（包含预设添加/删除/重置）",
+        "创建新的 BatchSidebar（介于两者之间）"
+      ],
+      "recommended": 0
+    },
+    {
+      "question": "批量模式的上传窗口分离方式？",
+      "context": "当前批量模式使用单一上传区域，需要分离为原图和标注图两个独立窗口。需要确定分离后的布局和交互方式。",
+      "options": [
+        "左右并排布局（类似单张模式的 UploadModal）",
+        "上下堆叠布局",
+        "使用 Tab 切换（保持单一窗口，内部切换）"
+      ],
+      "recommended": 0
+    }
+  ],
+  "_metadata": {
+    "exploration_angle": "patterns",
+    "exploration_index": 1,
+    "timestamp": "2026-02-01T19:00:00Z"
+  }
+}

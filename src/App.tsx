@@ -108,6 +108,9 @@ function App() {
   const [annotatedFile, setAnnotatedFile] = useState<File | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+  // 粘贴目标状态 (hover 检测)
+  const [activePasteTarget, setActivePasteTarget] = useState<'original' | 'annotated' | null>(null);
+
   // Responsive screen size
   const screenSize = useScreenSize();
 
@@ -151,15 +154,12 @@ function App() {
     original: string;
     annotated: string;
     annotationLayer: string;
+    annotatedWithBlock: string;
     result: string;
   } | null>(null);
 
   // 预览视图模式：简化视图 vs 对比视图
   const [showComparison, setShowComparison] = useState(false);
-
-  // 批量模式预设保存对话框
-  const [batchSaveDialog, setBatchSaveDialog] = useState(false);
-  const [batchPresetName, setBatchPresetName] = useState('');
 
   // Toast 提示
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
@@ -201,10 +201,15 @@ function App() {
     }
   }, [selectedPreset]);
 
+  // 追踪上一个 mode 值,仅在从 single 切换到 batch 时关闭 drawer
+  const prevModeRef = useRef<Mode>(mode);
   useEffect(() => {
-    if (mode !== 'single') {
+    console.log('[Mode Change] from', prevModeRef.current, 'to', mode);
+    if (prevModeRef.current === 'single' && mode === 'batch') {
+      console.log('[Mode Change] Closing drawer (single → batch)');
       setIsDrawerOpen(false);
     }
+    prevModeRef.current = mode;
   }, [mode]);
 
   // Responsive sidebar auto-collapse
@@ -242,6 +247,8 @@ function App() {
   // 全局粘贴事件监听
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
+      console.log('[Paste] Event triggered, mode:', mode);
+
       // 如果焦点在输入框中，不处理粘贴
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
@@ -249,7 +256,10 @@ function App() {
       }
 
       // 只在单张处理模式下启用粘贴
-      if (mode !== 'single') return;
+      if (mode !== 'single') {
+        console.log('[Paste] Skipped: not in single mode');
+        return;
+      }
 
       const items = e.clipboardData?.items;
       if (!items) return;
@@ -259,18 +269,29 @@ function App() {
           const file = item.getAsFile();
           if (file) {
             e.preventDefault();
+            console.log('[Paste] Opening drawer for image upload');
             setIsDrawerOpen(true);
-            // 智能填充：先填原图，后填标注图
-            if (!originalFile) {
+
+            // 优先使用 activePasteTarget,如果为 null 则使用原有顺序逻辑
+            if (activePasteTarget === 'original') {
               setOriginalFile(file);
               showToast('已粘贴为原始图片', 'success');
-            } else if (!annotatedFile) {
+            } else if (activePasteTarget === 'annotated') {
               setAnnotatedFile(file);
               showToast('已粘贴为 AI 标注图片', 'success');
             } else {
-              // 两个都有时，替换原图
-              setOriginalFile(file);
-              showToast('已替换原始图片', 'info');
+              // 回退逻辑：智能填充（先填原图，后填标注图）
+              if (!originalFile) {
+                setOriginalFile(file);
+                showToast('已粘贴为原始图片', 'success');
+              } else if (!annotatedFile) {
+                setAnnotatedFile(file);
+                showToast('已粘贴为 AI 标注图片', 'success');
+              } else {
+                // 两个都有时，替换原图
+                setOriginalFile(file);
+                showToast('已替换原始图片', 'info');
+              }
             }
             break;
           }
@@ -280,7 +301,7 @@ function App() {
 
     document.addEventListener('paste', handlePaste);
     return () => document.removeEventListener('paste', handlePaste);
-  }, [mode, originalFile, annotatedFile, showToast]);
+  }, [mode, originalFile, annotatedFile, activePasteTarget, showToast]);
 
   useEffect(() => {
     try {
@@ -565,7 +586,7 @@ function App() {
                         </div>
                       </div>
                     ) : (
-                      /* 对比视图：四宫格 */
+                      /* 对比视图：双面板 */
                       <div>
                         <div className="flex items-center justify-between mb-4">
                           <span className="text-sm text-slate-500">对比视图</span>
@@ -577,9 +598,7 @@ function App() {
                           </button>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                          <ImagePreview src={preview.original} title="原始图片" subtitle="清晰文字" />
-                          <ImagePreview src={preview.annotated} title="AI标注图片" subtitle="带标注" />
-                          <ImagePreview src={preview.annotationLayer} title="提取的标注层" subtitle="纯标注" />
+                          <ImagePreview src={preview.annotatedWithBlock} title="标注图+色块" subtitle="叠加原图前" />
                           <ImagePreview src={preview.result} title="最终结果" subtitle="合成图片" />
                         </div>
                       </div>
@@ -618,228 +637,30 @@ function App() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2">
+          <div className="flex flex-col lg:flex-row gap-4">
+            <Sidebar
+              options={options}
+              onChange={handleBatchOptionChange}
+              onDownload={() => {}}
+              canDownload={false}
+              isProcessing={false}
+              collapsed={sidebarCollapsed}
+              onCollapsedChange={handleSidebarCollapsedChange}
+              selectedPreset={selectedPreset}
+              onPresetChange={setSelectedPreset}
+              autoPreview={false}
+              onAutoPreviewChange={() => {}}
+              onProcess={() => {}}
+              canProcess={false}
+              overlayMode={false}
+              userPresets={userPresets}
+              onAddPreset={handleAddPreset}
+              onRemovePreset={handleRemovePreset}
+              onUpdatePreset={handleUpdatePreset}
+              onResetPresets={handleResetPresets}
+            />
+            <div className="flex-1">
               <BatchProcessor options={options} />
-            </div>
-            <div>
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
-                <h2 className="text-lg font-semibold text-slate-800 mb-4">处理设置</h2>
-
-                <div className="space-y-5">
-                  {/* 快速预设 */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-medium text-slate-700">快速预设</h3>
-                      {userPresets.length === 0 && (
-                        <button
-                          onClick={handleResetPresets}
-                          className="text-xs text-primary-600 hover:text-primary-700"
-                        >
-                          恢复默认
-                        </button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-4 gap-1">
-                      {userPresets.map((preset) => (
-                        <div key={preset.id} className="relative group">
-                          <button
-                            onClick={() => {
-                              setOptions(preset.options);
-                              setSelectedPreset(preset.id);
-                            }}
-                            onDoubleClick={() => {
-                              if (selectedPreset === preset.id) {
-                                setSelectedPreset(null);
-                              }
-                            }}
-                            className={`
-                              w-full py-1 px-1.5 rounded text-xs font-medium transition-all duration-200 truncate
-                              ${selectedPreset === preset.id
-                                ? 'bg-primary-500 text-white'
-                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                              }
-                            `}
-                            title={`${preset.name}${selectedPreset === preset.id ? ' (双击取消选中)' : ''}`}
-                          >
-                            {preset.name}
-                          </button>
-                          <button
-                            onClick={() => handleRemovePreset(preset.id)}
-                            className="absolute -right-0.5 -top-0.5 w-3.5 h-3.5 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-red-500 hover:border-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="删除预设"
-                          >
-                            <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      ))}
-                      {userPresets.length < 4 && (
-                        batchSaveDialog ? (
-                          <div className="col-span-4 flex gap-1 items-center mt-1">
-                            <input
-                              type="text"
-                              value={batchPresetName}
-                              onChange={(e) => setBatchPresetName(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && batchPresetName.trim()) {
-                                  handleAddPreset(batchPresetName.trim().slice(0, 4));
-                                  setBatchPresetName('');
-                                  setBatchSaveDialog(false);
-                                }
-                              }}
-                              placeholder="名称(4字)"
-                              maxLength={4}
-                              className="flex-1 px-1.5 py-0.5 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
-                              autoFocus
-                            />
-                            <button
-                              onClick={() => {
-                                if (batchPresetName.trim()) {
-                                  handleAddPreset(batchPresetName.trim().slice(0, 4));
-                                  setBatchPresetName('');
-                                  setBatchSaveDialog(false);
-                                }
-                              }}
-                              disabled={!batchPresetName.trim()}
-                              className="px-1.5 py-0.5 text-xs font-medium text-white bg-primary-500 rounded hover:bg-primary-600 disabled:opacity-50"
-                            >
-                              存
-                            </button>
-                            <button
-                              onClick={() => { setBatchSaveDialog(false); setBatchPresetName(''); }}
-                              className="px-1.5 py-0.5 text-xs text-slate-500 hover:text-slate-700"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setBatchSaveDialog(true)}
-                            className="py-1 px-1.5 rounded text-xs text-slate-400 border border-dashed border-slate-300 hover:border-primary-400 hover:text-primary-600 transition-colors"
-                            title="保存当前参数为预设"
-                          >
-                            +
-                          </button>
-                        )
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 遮罩参数 */}
-                  <div className="space-y-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
-                    {selectedPreset && (
-                      <div className="text-xs text-purple-600 font-medium">
-                        编辑预设: {userPresets.find(p => p.id === selectedPreset)?.name} (修改自动保存)
-                      </div>
-                    )}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs text-slate-600">文字检测阈值</label>
-                        <span className="text-xs text-slate-500 font-mono">{options.textThreshold}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="100"
-                        max="250"
-                        value={options.textThreshold}
-                        onChange={(e) =>
-                          handleBatchOptionChange({ ...options, textThreshold: Number(e.target.value) })
-                        }
-                        className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs text-slate-600">遮罩膨胀半径</label>
-                        <span className="text-xs text-slate-500 font-mono">{options.maskExpand}px</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="10"
-                        value={options.maskExpand}
-                        onChange={(e) =>
-                          handleBatchOptionChange({ ...options, maskExpand: Number(e.target.value) })
-                        }
-                        className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* 色块设置 */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-slate-700">
-                        色块颜色
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={options.blockColor}
-                          onChange={(e) =>
-                            handleBatchOptionChange({ ...options, blockColor: e.target.value })
-                          }
-                          className="w-6 h-6 rounded cursor-pointer border border-slate-300"
-                        />
-                        <span className="text-xs text-slate-500 font-mono">
-                          {options.blockColor}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex gap-1.5">
-                      {['#FFFF00', '#90EE90', '#FFB6C1', '#87CEEB', '#FFA94D', '#B197FC'].map((color) => (
-                        <button
-                          key={color}
-                          type="button"
-                          onClick={() => handleBatchOptionChange({ ...options, blockColor: color })}
-                          className={`w-6 h-6 rounded border-2 transition-all ${
-                            options.blockColor === color ? 'border-primary-500 scale-110' : 'border-transparent'
-                          }`}
-                          style={{ backgroundColor: color }}
-                          title={color}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-slate-700">
-                        色块透明度
-                      </label>
-                      <span className="text-sm text-slate-500 font-mono">
-                        {Math.round(options.blockOpacity * 100)}%
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={options.blockOpacity * 100}
-                      onChange={(e) =>
-                        handleBatchOptionChange({
-                          ...options,
-                          blockOpacity: Number(e.target.value) / 100,
-                        })
-                      }
-                      className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                    />
-                  </div>
-                </div>
-
-                {/* 使用说明 */}
-                <div className="mt-6 p-4 bg-slate-50 rounded-xl">
-                  <h3 className="text-sm font-medium text-slate-700 mb-2">使用说明</h3>
-                  <ul className="text-xs text-slate-500 space-y-1">
-                    <li>• 批量上传原图和对应的标注图</li>
-                    <li>• 系统会根据文件名自动配对</li>
-                    <li>• 标注图文件名包含 "annotated"、"标注" 等关键词</li>
-                    <li>• 处理完成后会自动打包下载</li>
-                  </ul>
-                </div>
-              </div>
             </div>
           </div>
         )}
@@ -860,6 +681,8 @@ function App() {
             annotatedFile={annotatedFile}
             onOriginalSelect={setOriginalFile}
             onAnnotatedSelect={setAnnotatedFile}
+            activePasteTarget={activePasteTarget}
+            onSetActivePasteTarget={setActivePasteTarget}
           />
         </>
       )}

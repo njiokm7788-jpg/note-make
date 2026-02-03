@@ -1,0 +1,251 @@
+{
+  "summary": "修复单张模式下粘贴上传功能失效的问题。根因是 paste 事件处理器的闭包陈旧和 mode change effect 的状态竞态条件。采用综合修复策略,通过使用 useCallback 稳定 showToast 引用,并优化 mode change effect 的执行条件,确保粘贴功能在模式切换后正常工作。",
+  "root_cause": "src/App.tsx 中存在两个相互关联的问题: (1) 粘贴事件处理器 (lines 239-280) 的依赖数组包含 showToast,而 showToast 在每次渲染时重新创建,导致事件监听器频繁重新注册,且在 mode 切换时捕获了陈旧的 mode 值; (2) mode change effect (lines 201-205) 在 mode 变化时强制关闭 drawer,与 paste handler 中的 setIsDrawerOpen(true) 产生竞态条件。",
+  "strategy": "comprehensive_fix",
+  "tasks": [
+    {
+      "id": "FIX1",
+      "title": "使用 useCallback 稳定 showToast 引用",
+      "scope": "src/App.tsx",
+      "action": "Fix",
+      "description": "将 showToast 函数用 useCallback 包装,确保其引用稳定,避免依赖它的 useEffect (paste handler) 在每次渲染时重新执行。",
+      "modification_points": [
+        {
+          "file": "src/App.tsx",
+          "target": "showToast:165-168",
+          "change": "用 useCallback 包装 showToast 函数,依赖数组为空"
+        }
+      ],
+      "implementation": [
+        "在 src/App.tsx 第 165 行,将 showToast 函数定义改为 useCallback",
+        "使用空依赖数组 [],因为 setToast 是稳定的 React state setter",
+        "确保 showToast 的函数签名和行为保持不变",
+        "验证 TypeScript 类型推断正确"
+      ],
+      "verification": [
+        "检查 showToast 在组件重新渲染时引用保持不变",
+        "确认 paste handler useEffect 不会因 showToast 变化而重新注册",
+        "测试 toast 提示功能仍然正常工作"
+      ],
+      "depends_on": [],
+      "risk": "low",
+      "cli_execution_id": "paste-fix-FIX1",
+      "cli_execution": {
+        "strategy": "new"
+      },
+      "rationale": {
+        "chosen_approach": "使用 useCallback 稳定 showToast 引用",
+        "alternatives_considered": [
+          "从 paste handler 依赖数组中移除 showToast (不推荐,违反 React hooks 规则)",
+          "使用 ref 存储 showToast (过度复杂)"
+        ],
+        "decision_factors": [
+          "符合 React hooks 最佳实践",
+          "最小化代码改动",
+          "不影响现有功能"
+        ],
+        "tradeoffs": "无明显 tradeoff,这是标准的 React 优化模式"
+      },
+      "verification_details": {
+        "unit_tests": [],
+        "integration_tests": [],
+        "manual_checks": [
+          "在单张模式下粘贴图片,验证 toast 提示正常显示",
+          "切换模式后再次粘贴,验证 toast 功能不受影响"
+        ],
+        "success_metrics": [
+          "showToast 引用在重新渲染时保持稳定",
+          "paste handler 不会因 showToast 变化而重新注册"
+        ]
+      }
+    },
+    {
+      "id": "FIX2",
+      "title": "优化 mode change effect 的执行条件",
+      "scope": "src/App.tsx",
+      "action": "Fix",
+      "description": "修改 mode change effect,仅在从 single 切换到 batch 时关闭 drawer,避免与 paste handler 产生竞态条件。",
+      "modification_points": [
+        {
+          "file": "src/App.tsx",
+          "target": "useEffect (mode change):201-205",
+          "change": "使用 ref 追踪上一个 mode 值,仅在从 single 切换到 batch 时关闭 drawer"
+        }
+      ],
+      "implementation": [
+        "在 src/App.tsx 中添加 prevModeRef 用于追踪上一个 mode 值",
+        "修改 lines 201-205 的 useEffect,添加条件判断: if (prevModeRef.current === 'single' && mode === 'batch')",
+        "在 effect 末尾更新 prevModeRef.current = mode",
+        "确保初始值设置正确: const prevModeRef = useRef<Mode>(mode)"
+      ],
+      "verification": [
+        "测试从 single 切换到 batch 时 drawer 正确关闭",
+        "测试从 batch 切换到 single 时 drawer 状态不受影响",
+        "验证粘贴功能在模式切换后正常工作"
+      ],
+      "depends_on": [],
+      "risk": "low",
+      "cli_execution_id": "paste-fix-FIX2",
+      "cli_execution": {
+        "strategy": "new"
+      },
+      "rationale": {
+        "chosen_approach": "使用 ref 追踪上一个 mode 值,精确控制 drawer 关闭时机",
+        "alternatives_considered": [
+          "完全移除 mode change effect (可能导致 batch 模式下 drawer 残留)",
+          "仅检查 mode === 'batch' (无法区分是否是从 single 切换过来)"
+        ],
+        "decision_factors": [
+          "精确控制状态变化时机",
+          "避免不必要的状态更新",
+          "保持原有设计意图 (batch 模式下不显示 drawer)"
+        ],
+        "tradeoffs": "增加了一个 ref,但换来了更精确的状态控制"
+      },
+      "verification_details": {
+        "unit_tests": [],
+        "integration_tests": [],
+        "manual_checks": [
+          "在 single 模式下打开 drawer,切换到 batch 模式,验证 drawer 关闭",
+          "在 batch 模式下切换到 single 模式,验证 drawer 状态不受影响",
+          "在 single 模式下粘贴图片,验证 drawer 正常打开"
+        ],
+        "success_metrics": [
+          "drawer 仅在从 single 切换到 batch 时关闭",
+          "粘贴功能不受 mode change effect 干扰"
+        ]
+      }
+    },
+    {
+      "id": "FIX3",
+      "title": "添加调试日志验证修复效果",
+      "scope": "src/App.tsx",
+      "action": "Add",
+      "description": "在关键位置添加 console.log,验证 paste handler 和 mode change effect 的执行时序,确保修复生效。",
+      "modification_points": [
+        {
+          "file": "src/App.tsx",
+          "target": "paste handler:239-280",
+          "change": "添加 console.log 追踪 mode 值和事件触发"
+        },
+        {
+          "file": "src/App.tsx",
+          "target": "mode change effect:201-205",
+          "change": "添加 console.log 追踪 mode 切换和 drawer 关闭"
+        }
+      ],
+      "implementation": [
+        "在 paste handler 开始处添加: console.log('[Paste] Event triggered, mode:', mode)",
+        "在 mode change effect 中添加: console.log('[Mode Change] from', prevModeRef.current, 'to', mode)",
+        "在 setIsDrawerOpen 调用处添加日志追踪状态变化",
+        "修复完成后可选择性移除或保留这些日志"
+      ],
+      "verification": [
+        "在浏览器控制台观察日志输出",
+        "验证 mode 切换时日志顺序正确",
+        "确认 paste 事件触发时 mode 值正确"
+      ],
+      "depends_on": ["FIX1", "FIX2"],
+      "risk": "low",
+      "cli_execution_id": "paste-fix-FIX3",
+      "cli_execution": {
+        "strategy": "merge_fork",
+        "merge_from": ["paste-fix-FIX1", "paste-fix-FIX2"]
+      },
+      "rationale": {
+        "chosen_approach": "添加临时调试日志",
+        "alternatives_considered": [
+          "使用 React DevTools 调试 (需要手动操作)",
+          "不添加日志,直接测试 (难以追踪问题)"
+        ],
+        "decision_factors": [
+          "便于验证修复效果",
+          "帮助理解执行时序",
+          "可选择性移除"
+        ],
+        "tradeoffs": "增加了少量代码,但提供了可观测性"
+      },
+      "verification_details": {
+        "unit_tests": [],
+        "integration_tests": [],
+        "manual_checks": [
+          "切换模式并观察控制台日志",
+          "粘贴图片并观察事件触发日志",
+          "验证日志输出符合预期"
+        ],
+        "success_metrics": [
+          "日志清晰显示执行时序",
+          "mode 值在 paste handler 中正确"
+        ]
+      }
+    }
+  ],
+  "flow_control": {
+    "execution_order": [
+      {
+        "phase": "parallel-1",
+        "tasks": ["FIX1", "FIX2"],
+        "type": "parallel"
+      },
+      {
+        "phase": "sequential-1",
+        "tasks": ["FIX3"],
+        "type": "sequential"
+      }
+    ],
+    "exit_conditions": {
+      "success": "所有任务完成且粘贴功能在单张模式下正常工作",
+      "failure": "任何任务失败或粘贴功能仍然无法工作"
+    }
+  },
+  "focus_paths": [
+    "src/App.tsx"
+  ],
+  "test_strategy": {
+    "scope": "smoke",
+    "specific_tests": [],
+    "manual_verification": [
+      "启动应用,确保默认在单张模式",
+      "复制图片到剪贴板,按 Ctrl+V 粘贴,验证 UploadModal 打开",
+      "切换到批量模式,再切换回单张模式",
+      "再次粘贴图片,验证功能正常",
+      "检查控制台日志,确认执行时序正确"
+    ]
+  },
+  "rollback_plan": {
+    "strategy": "git_revert",
+    "steps": [
+      "git revert HEAD (如果已提交)",
+      "或直接 git checkout src/App.tsx (如果未提交)",
+      "重新测试确认回滚成功"
+    ]
+  },
+  "estimated_time": "20-30 minutes",
+  "recommended_execution": "Agent",
+  "severity": "Medium",
+  "risk_level": "low",
+  "design_decisions": [
+    {
+      "decision": "使用 useCallback 稳定 showToast 引用而不是从依赖数组中移除",
+      "rationale": "符合 React hooks 规则,避免 ESLint 警告,且是标准的性能优化模式",
+      "tradeoff": "增加了一个 hook 调用,但换来了更好的代码质量和可维护性"
+    },
+    {
+      "decision": "使用 ref 追踪上一个 mode 值而不是简单检查 mode === 'batch'",
+      "rationale": "精确控制 drawer 关闭时机,避免在其他场景下误触发",
+      "tradeoff": "增加了一个 ref 和少量逻辑,但换来了更精确的状态控制"
+    },
+    {
+      "decision": "添加调试日志作为独立任务",
+      "rationale": "便于验证修复效果和理解执行时序,可选择性移除",
+      "tradeoff": "增加了少量代码,但提供了可观测性"
+    }
+  ],
+  "_metadata": {
+    "timestamp": "2026-02-01T15:45:00.000Z",
+    "source": "direct-planning",
+    "planning_mode": "direct",
+    "complexity": "Medium",
+    "diagnosis_angles": ["event-handling", "state-management"]
+  }
+}

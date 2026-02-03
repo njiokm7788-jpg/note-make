@@ -269,8 +269,8 @@ export function Sidebar({
       `}
       aria-label="处理设置侧边栏"
     >
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-3">
+      <div className="p-3">
+        <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-semibold text-slate-800">处理设置</h2>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5">
@@ -307,7 +307,7 @@ export function Sidebar({
           </div>
         </div>
 
-        <div className="space-y-5">
+        <div className="space-y-3">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-slate-700">快速预设</h3>
@@ -424,7 +424,7 @@ export function Sidebar({
           </button>
 
           {showAdvanced && (
-            <div className="space-y-4 p-4 bg-purple-50 rounded-xl border border-purple-200">
+            <div className="space-y-3 p-3 bg-purple-50 rounded-xl border border-purple-200">
               <h3 className="text-sm font-medium text-purple-700 flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -433,14 +433,21 @@ export function Sidebar({
                 {selectedPreset ? '遮罩参数 (修改自动保存)' : '遮罩参数'}
               </h3>
 
-              <div className="space-y-2">
+              <div className="space-y-2" title="亮度低于此值的像素被识别为文字，值越高识别的文字区域越多">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-medium text-slate-600">
                     文字检测阈值
                   </label>
-                  <span className="text-xs text-slate-500 font-mono">
-                    {options.textThreshold}
-                  </span>
+                  <input
+                    type="number"
+                    min="100"
+                    max="250"
+                    value={options.textThreshold}
+                    onChange={(e) =>
+                      handleOptionChange({ ...options, textThreshold: Number(e.target.value) })
+                    }
+                    className="w-16 px-2 py-0.5 text-xs text-slate-700 font-mono border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                  />
                 </div>
                 <input
                   type="range"
@@ -452,19 +459,23 @@ export function Sidebar({
                   }
                   className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
                 />
-                <p className="text-xs text-purple-600">
-                  亮度低于此值的像素被识别为文字，值越高识别的文字区域越多
-                </p>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2" title="扩展文字遮罩区域，确保完全覆盖文字边缘">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-medium text-slate-600">
                     遮罩膨胀半径
                   </label>
-                  <span className="text-xs text-slate-500 font-mono">
-                    {options.maskExpand}px
-                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="20"
+                    value={options.maskExpand}
+                    onChange={(e) =>
+                      handleOptionChange({ ...options, maskExpand: Number(e.target.value) })
+                    }
+                    className="w-16 px-2 py-0.5 text-xs text-slate-700 font-mono border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                  />
                 </div>
                 <input
                   type="range"
@@ -476,12 +487,69 @@ export function Sidebar({
                   }
                   className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
                 />
-                <p className="text-xs text-purple-600">
-                  扩展文字遮罩区域，确保完全覆盖文字边缘
-                </p>
               </div>
 
-              <div className="space-y-3 pt-2 border-t border-purple-200">
+              <div className="space-y-2" title="分别设置色块条向左/右扩展的像素数">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-slate-600">色块补偿</label>
+                  <div className="flex gap-2 items-center">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-slate-500">左</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="50"
+                        value={options.paddingLeft}
+                        onChange={(e) =>
+                          handleOptionChange({ ...options, paddingLeft: Number(e.target.value) })
+                        }
+                        className="w-14 px-1.5 py-0.5 text-xs text-slate-700 font-mono border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                      />
+                      <span className="text-xs text-slate-500">px</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-slate-500">右</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="50"
+                        value={options.paddingRight}
+                        onChange={(e) =>
+                          handleOptionChange({ ...options, paddingRight: Number(e.target.value) })
+                        }
+                        className="w-14 px-1.5 py-0.5 text-xs text-slate-700 font-mono border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                      />
+                      <span className="text-xs text-slate-500">px</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="range"
+                    min="0"
+                    max="50"
+                    value={options.paddingLeft}
+                    onChange={(e) =>
+                      handleOptionChange({ ...options, paddingLeft: Number(e.target.value) })
+                    }
+                    className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                    title="左侧补偿"
+                  />
+                  <input
+                    type="range"
+                    min="0"
+                    max="50"
+                    value={options.paddingRight}
+                    onChange={(e) =>
+                      handleOptionChange({ ...options, paddingRight: Number(e.target.value) })
+                    }
+                    className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                    title="右侧补偿"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-purple-200">
                 <div className="flex items-center gap-2">
                   <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
@@ -489,72 +557,73 @@ export function Sidebar({
                   <span className="text-xs font-medium text-purple-700">色块设置</span>
                 </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-slate-600">
-                      色块颜色
-                    </label>
-                    <div className="flex items-center gap-2">
+                <div className="grid grid-cols-2 gap-3">
+                  {/* 左侧：颜色选择 */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-medium text-slate-600">颜色</label>
                       <input
                         type="color"
                         value={options.blockColor}
                         onChange={(e) =>
                           handleOptionChange({ ...options, blockColor: e.target.value })
                         }
-                        className="w-6 h-6 rounded cursor-pointer border border-slate-300"
+                        className="w-5 h-5 rounded cursor-pointer border border-slate-300"
                       />
-                      <span className="text-xs text-slate-500 font-mono">
-                        {options.blockColor}
-                      </span>
+                    </div>
+                    <div className="flex gap-1">
+                      {['#FFFF00', '#90EE90', '#FFB6C1', '#87CEEB', '#FFA94D', '#B197FC'].map((color) => (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => handleOptionChange({ ...options, blockColor: color })}
+                          className={`w-5 h-5 rounded border-2 transition-all ${
+                            options.blockColor === color ? 'border-purple-500 scale-110' : 'border-transparent'
+                          }`}
+                          style={{ backgroundColor: color }}
+                          title={color}
+                        />
+                      ))}
                     </div>
                   </div>
-                  <div className="flex gap-1.5">
-                    {['#FFFF00', '#90EE90', '#FFB6C1', '#87CEEB', '#FFA94D', '#B197FC'].map((color) => (
-                      <button
-                        key={color}
-                        type="button"
-                        onClick={() => handleOptionChange({ ...options, blockColor: color })}
-                        className={`w-6 h-6 rounded border-2 transition-all ${
-                          options.blockColor === color ? 'border-purple-500 scale-110' : 'border-transparent'
-                        }`}
-                        style={{ backgroundColor: color }}
-                        title={color}
+                  {/* 右侧：透明度 */}
+                  <div className="space-y-1.5" title="非文字区域色块的透明度">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-medium text-slate-600">透明度</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={Math.round(options.blockOpacity * 100)}
+                        onChange={(e) =>
+                          handleOptionChange({
+                            ...options,
+                            blockOpacity: Number(e.target.value) / 100,
+                          })
+                        }
+                        className="w-16 px-2 py-0.5 text-xs text-slate-700 font-mono border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
                       />
-                    ))}
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={options.blockOpacity * 100}
+                      onChange={(e) =>
+                        handleOptionChange({
+                          ...options,
+                          blockOpacity: Number(e.target.value) / 100,
+                        })
+                      }
+                      className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                    />
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-slate-600">
-                      色块透明度
-                    </label>
-                    <span className="text-xs text-slate-500 font-mono">
-                      {Math.round(options.blockOpacity * 100)}%
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={options.blockOpacity * 100}
-                    onChange={(e) =>
-                      handleOptionChange({
-                        ...options,
-                        blockOpacity: Number(e.target.value) / 100,
-                      })
-                    }
-                    className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
-                  />
-                  <p className="text-xs text-purple-600">
-                    非文字区域色块的透明度
-                  </p>
                 </div>
               </div>
             </div>
           )}
 
-          <div className="flex flex-col gap-3 pt-4">
+          <div className="flex flex-col gap-3 pt-3">
             {!autoPreview && (
               <button
                 type="button"

@@ -139,9 +139,16 @@ export function ProcessingPanel({
                 <label className="text-xs font-medium text-slate-600">
                   文字检测阈值
                 </label>
-                <span className="text-xs text-slate-500 font-mono">
-                  {options.textThreshold}
-                </span>
+                <input
+                  type="number"
+                  min="100"
+                  max="250"
+                  value={options.textThreshold}
+                  onChange={(e) =>
+                    handleOptionChange({ ...options, textThreshold: Number(e.target.value) })
+                  }
+                  className="w-16 px-2 py-0.5 text-xs text-slate-700 font-mono border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                />
               </div>
               <input
                 type="range"
@@ -164,9 +171,16 @@ export function ProcessingPanel({
                 <label className="text-xs font-medium text-slate-600">
                   遮罩膨胀半径
                 </label>
-                <span className="text-xs text-slate-500 font-mono">
-                  {options.maskExpand}px
-                </span>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  value={options.maskExpand}
+                  onChange={(e) =>
+                    handleOptionChange({ ...options, maskExpand: Number(e.target.value) })
+                  }
+                  className="w-16 px-2 py-0.5 text-xs text-slate-700 font-mono border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                />
               </div>
               <input
                 type="range"
@@ -180,6 +194,65 @@ export function ProcessingPanel({
               />
               <p className="text-xs text-purple-600">
                 扩展文字遮罩区域，确保完全覆盖文字边缘
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-slate-600">
+                  色块左侧补偿
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="50"
+                  value={options.paddingLeft}
+                  onChange={(e) =>
+                    handleOptionChange({ ...options, paddingLeft: Number(e.target.value) })
+                  }
+                  className="w-16 px-2 py-0.5 text-xs text-slate-700 font-mono border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="50"
+                value={options.paddingLeft}
+                onChange={(e) =>
+                  handleOptionChange({ ...options, paddingLeft: Number(e.target.value) })
+                }
+                className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-slate-600">
+                  色块右侧补偿
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="50"
+                  value={options.paddingRight}
+                  onChange={(e) =>
+                    handleOptionChange({ ...options, paddingRight: Number(e.target.value) })
+                  }
+                  className="w-16 px-2 py-0.5 text-xs text-slate-700 font-mono border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="50"
+                value={options.paddingRight}
+                onChange={(e) =>
+                  handleOptionChange({ ...options, paddingRight: Number(e.target.value) })
+                }
+                className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+              />
+              <p className="text-xs text-purple-600">
+                分别设置色块条向左/右扩展的像素数
               </p>
             </div>
 
@@ -232,9 +305,19 @@ export function ProcessingPanel({
                   <label className="text-xs font-medium text-slate-600">
                     色块透明度
                   </label>
-                  <span className="text-xs text-slate-500 font-mono">
-                    {Math.round(options.blockOpacity * 100)}%
-                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={Math.round(options.blockOpacity * 100)}
+                    onChange={(e) =>
+                      handleOptionChange({
+                        ...options,
+                        blockOpacity: Number(e.target.value) / 100,
+                      })
+                    }
+                    className="w-16 px-2 py-0.5 text-xs text-slate-700 font-mono border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                  />
                 </div>
                 <input
                   type="range"

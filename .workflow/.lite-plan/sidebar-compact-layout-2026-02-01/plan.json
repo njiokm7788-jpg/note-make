@@ -1,0 +1,156 @@
+{
+  "summary": "重构 Sidebar 处理设置区域布局，通过减少间距、使用网格布局并排显示控件、合并相关设置来实现更紧凑的界面，充分利用 280px 宽度的右侧空间。",
+  "approach": "采用渐进式重构：首先减少全局间距和 padding，然后将相关控件改为网格并排布局（如左右补偿、颜色选择器与透明度），最后精简说明文字，仅保留关键提示。",
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "减少全局间距和 padding",
+      "scope": "src/components/Sidebar.tsx",
+      "action": "Refactor",
+      "description": "将主容器 padding 从 p-4 减少到 p-3，将 space-y-5 减少到 space-y-3，调整各区域间的间距使整体更紧凑。",
+      "modification_points": [
+        {
+          "file": "src/components/Sidebar.tsx",
+          "target": "展开状态主容器:272",
+          "change": "p-4 → p-3"
+        },
+        {
+          "file": "src/components/Sidebar.tsx",
+          "target": "space-y-5:310",
+          "change": "space-y-5 → space-y-3"
+        },
+        {
+          "file": "src/components/Sidebar.tsx",
+          "target": "高级设置区域:427",
+          "change": "space-y-4 p-4 → space-y-3 p-3"
+        }
+      ],
+      "implementation": [
+        "定位主容器 div className 中的 p-4，改为 p-3",
+        "定位 space-y-5，改为 space-y-3",
+        "定位高级设置面板的 space-y-4 p-4，改为 space-y-3 p-3",
+        "调整操作按钮区域的 pt-4 为 pt-3"
+      ],
+      "acceptance": [
+        "主容器 padding 减少 4px",
+        "各区域垂直间距减少约 8px",
+        "整体高度明显降低"
+      ]
+    },
+    {
+      "id": "T2",
+      "title": "左右补偿控件并排显示",
+      "scope": "src/components/Sidebar.tsx",
+      "action": "Refactor",
+      "description": "将色块左侧补偿和右侧补偿两个滑块改为 2 列网格并排显示，共享一个标签行，充分利用水平空间。",
+      "modification_points": [
+        {
+          "file": "src/components/Sidebar.tsx",
+          "target": "色块左侧补偿:484-503",
+          "change": "改为 grid grid-cols-2 布局"
+        },
+        {
+          "file": "src/components/Sidebar.tsx",
+          "target": "色块右侧补偿:505-527",
+          "change": "合并到同一网格行"
+        }
+      ],
+      "implementation": [
+        "创建包裹两个补偿控件的 div，使用 grid grid-cols-2 gap-3",
+        "添加共享标签行：色块补偿（左/右）",
+        "每个控件只保留数值显示和滑块，移除独立标签",
+        "移除右侧补偿的说明文字（与左侧重复）"
+      ],
+      "acceptance": [
+        "左右补偿控件在同一行显示",
+        "节省约 60px 垂直空间",
+        "滑块仍可独立操作"
+      ],
+      "depends_on": ["T1"]
+    },
+    {
+      "id": "T3",
+      "title": "颜色选择器与透明度并排显示",
+      "scope": "src/components/Sidebar.tsx",
+      "action": "Refactor",
+      "description": "将色块颜色选择器和透明度滑块改为并排布局，颜色选择器占左侧较小空间，透明度滑块占右侧较大空间。",
+      "modification_points": [
+        {
+          "file": "src/components/Sidebar.tsx",
+          "target": "色块设置区域:529-598",
+          "change": "重构为 flex 或 grid 并排布局"
+        }
+      ],
+      "implementation": [
+        "创建 flex 容器包裹颜色和透明度控件",
+        "颜色选择器区域：颜色输入 + 预设色块（垂直排列，宽度约 40%）",
+        "透明度区域：标签 + 数值 + 滑块（垂直排列，宽度约 60%）",
+        "移除冗余的说明文字"
+      ],
+      "acceptance": [
+        "颜色和透明度在同一行显示",
+        "预设色块保持可点击",
+        "节省约 40px 垂直空间"
+      ],
+      "depends_on": ["T1"]
+    },
+    {
+      "id": "T4",
+      "title": "精简说明文字",
+      "scope": "src/components/Sidebar.tsx",
+      "action": "Update",
+      "description": "移除或精简各控件下方的说明文字，仅保留关键提示，使用 title 属性提供详细说明。",
+      "modification_points": [
+        {
+          "file": "src/components/Sidebar.tsx",
+          "target": "文字检测阈值说明:455-457",
+          "change": "移除或改为 title 属性"
+        },
+        {
+          "file": "src/components/Sidebar.tsx",
+          "target": "遮罩膨胀半径说明:479-481",
+          "change": "移除或改为 title 属性"
+        },
+        {
+          "file": "src/components/Sidebar.tsx",
+          "target": "透明度说明:594-596",
+          "change": "移除"
+        }
+      ],
+      "implementation": [
+        "将说明文字内容移到对应控件的 title 属性",
+        "移除 <p> 说明文字元素",
+        "保留标签和数值显示"
+      ],
+      "acceptance": [
+        "无独立说明文字段落",
+        "hover 时可查看详细说明",
+        "节省约 50px 垂直空间"
+      ],
+      "depends_on": ["T2", "T3"]
+    }
+  ],
+  "design_decisions": [
+    {
+      "decision": "使用 grid 布局而非 flex 实现并排控件",
+      "rationale": "grid 可以精确控制列宽比例，确保两侧控件对齐",
+      "tradeoff": "代码稍复杂，但布局更稳定"
+    },
+    {
+      "decision": "将说明文字改为 title 属性而非完全移除",
+      "rationale": "保留信息可访问性，同时节省空间",
+      "tradeoff": "用户需要 hover 才能看到说明"
+    }
+  ],
+  "focus_paths": [
+    "src/components/Sidebar.tsx"
+  ],
+  "estimated_time": "15 minutes",
+  "recommended_execution": "Agent",
+  "complexity": "Low",
+  "_metadata": {
+    "timestamp": "2026-02-01T20:30:00+08:00",
+    "source": "direct-planning",
+    "planning_mode": "direct"
+  }
+}

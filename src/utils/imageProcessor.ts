@@ -12,6 +12,10 @@ export interface ProcessingOptions {
   blockColor: string;
   /** 色块透明度 (0-1) */
   blockOpacity: number;
+  /** 色块左侧补偿 (像素)，向左扩展色块条边界 */
+  paddingLeft: number;
+  /** 色块右侧补偿 (像素)，向右扩展色块条边界 */
+  paddingRight: number;
 }
 
 export const defaultProcessingOptions: ProcessingOptions = {
@@ -19,6 +23,8 @@ export const defaultProcessingOptions: ProcessingOptions = {
   maskExpand: 2,
   blockColor: '#FFFF00',
   blockOpacity: 0.3,
+  paddingLeft: 0,
+  paddingRight: 0,
 };
 
 /**
@@ -44,6 +50,8 @@ export const defaultPresets: Preset[] = [
       maskExpand: 2,
       blockColor: '#FFFF00',
       blockOpacity: 0.3,
+      paddingLeft: 0,
+      paddingRight: 0,
     }
   },
   {
@@ -55,6 +63,8 @@ export const defaultPresets: Preset[] = [
       maskExpand: 2,
       blockColor: '#90EE90',
       blockOpacity: 0.35,
+      paddingLeft: 0,
+      paddingRight: 0,
     }
   },
   {
@@ -66,6 +76,8 @@ export const defaultPresets: Preset[] = [
       maskExpand: 2,
       blockColor: '#FFB6C1',
       blockOpacity: 0.35,
+      paddingLeft: 0,
+      paddingRight: 0,
     }
   },
   {
@@ -77,6 +89,8 @@ export const defaultPresets: Preset[] = [
       maskExpand: 2,
       blockColor: '#87CEEB',
       blockOpacity: 0.3,
+      paddingLeft: 0,
+      paddingRight: 0,
     }
   }
 ];
@@ -178,7 +192,9 @@ function getLuminance(r: number, g: number, b: number): number {
 function extractTextMask(
   imageData: ImageData,
   textThreshold: number,
-  expandRadius: number
+  expandRadius: number,
+  paddingLeft: number = 0,
+  paddingRight: number = 0
 ): boolean[] {
   const { width, height, data } = imageData;
   const mask = new Array<boolean>(width * height).fill(false);
@@ -197,6 +213,7 @@ function extractTextMask(
   }
 
   // 第二步：圆形膨胀遮罩（扩展文字区域）
+  let currentMask = mask;
   if (expandRadius > 0) {
     const expandedMask = new Array<boolean>(width * height).fill(false);
 
@@ -219,16 +236,43 @@ function extractTextMask(
       }
     }
 
-    return expandedMask;
+    currentMask = expandedMask;
   }
 
-  return mask;
+  // 第三步：行级别水平合并（同一行内的文字区域合并为色块条）+ 左右补偿
+  const mergedMask = new Array<boolean>(width * height).fill(false);
+
+  for (let y = 0; y < height; y++) {
+    let minX = -1;
+    let maxX = -1;
+
+    // 找到该行的最左和最右文字像素
+    for (let x = 0; x < width; x++) {
+      if (currentMask[y * width + x]) {
+        if (minX === -1) {
+          minX = x;
+        }
+        maxX = x;
+      }
+    }
+
+    // 填充该行从 minX 到 maxX 的所有像素，并应用左右补偿
+    if (minX !== -1 && maxX !== -1) {
+      const paddedMinX = Math.max(0, minX - paddingLeft);
+      const paddedMaxX = Math.min(width - 1, maxX + paddingRight);
+      for (let x = paddedMinX; x <= paddedMaxX; x++) {
+        mergedMask[y * width + x] = true;
+      }
+    }
+  }
+
+  return mergedMask;
 }
 
 /**
  * 在遮罩区域应用色块叠加
- * 文字区域：使用清晰原图
- * 非文字区域：在模糊图上叠加半透明色块
+ * 文字区域：色块遮住标注图模糊文字 + 原图清晰文字叠加（正片叠底效果）
+ * 非文字区域：保持标注图原样
  */
 function applyColorBlock(
   originalData: ImageData,
@@ -250,16 +294,68 @@ function applyColorBlock(
       const maskIdx = y * width + x;
 
       if (textMask[maskIdx]) {
-        // 文字区域：使用清晰原图
-        output[idx] = original[idx];
-        output[idx + 1] = original[idx + 1];
-        output[idx + 2] = original[idx + 2];
+        // 文字区域：色块 + 原图文字叠加
+        // 使用正片叠底效果：白色背景变成色块颜色，黑色文字保持清晰
+        const origR = original[idx];
+        const origG = original[idx + 1];
+        const origB = original[idx + 2];
+
+        // 正片叠底混合：result = (color * original) / 255
+        // 再根据 blockOpacity 与原图混合，控制色块强度
+        const blendR = (color.r * origR) / 255;
+        const blendG = (color.g * origG) / 255;
+        const blendB = (color.b * origB) / 255;
+
+        output[idx] = Math.round(origR * (1 - blockOpacity) + blendR * blockOpacity);
+        output[idx + 1] = Math.round(origG * (1 - blockOpacity) + blendG * blockOpacity);
+        output[idx + 2] = Math.round(origB * (1 - blockOpacity) + blendB * blockOpacity);
         output[idx + 3] = 255;
       } else {
-        // 非文字区域：在模糊图上叠加色块
+        // 非文字区域：保持标注图原样
+        output[idx] = annotated[idx];
+        output[idx + 1] = annotated[idx + 1];
+        output[idx + 2] = annotated[idx + 2];
+        output[idx + 3] = 255;
+      }
+    }
+  }
+
+  return outputData;
+}
+
+/**
+ * 在标注图上应用色块叠加（用于预览中间状态）
+ * 文字区域：在标注图上叠加色块（遮住模糊文字）
+ * 非文字区域：保持标注图原样
+ */
+function applyColorBlockToAnnotated(
+  annotatedData: ImageData,
+  textMask: boolean[],
+  blockColor: string,
+  blockOpacity: number
+): ImageData {
+  const { width, height } = annotatedData;
+  const outputData = new ImageData(width, height);
+  const output = outputData.data;
+  const annotated = annotatedData.data;
+  const color = parseColor(blockColor);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * 4;
+      const maskIdx = y * width + x;
+
+      if (textMask[maskIdx]) {
+        // 文字区域：在标注图上叠加色块（遮住模糊文字）
         output[idx] = Math.round(annotated[idx] * (1 - blockOpacity) + color.r * blockOpacity);
         output[idx + 1] = Math.round(annotated[idx + 1] * (1 - blockOpacity) + color.g * blockOpacity);
         output[idx + 2] = Math.round(annotated[idx + 2] * (1 - blockOpacity) + color.b * blockOpacity);
+        output[idx + 3] = 255;
+      } else {
+        // 非文字区域：保持标注图原样
+        output[idx] = annotated[idx];
+        output[idx + 1] = annotated[idx + 1];
+        output[idx + 2] = annotated[idx + 2];
         output[idx + 3] = 255;
       }
     }
@@ -309,9 +405,17 @@ function generateMaskPreview(
 export function loadImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = URL.createObjectURL(file);
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl); // 释放内存
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl); // 释放内存
+      reject(new Error('Failed to load image'));
+    };
+    img.src = objectUrl;
   });
 }
 
@@ -375,7 +479,9 @@ export async function processImagePair(
   const textMask = extractTextMask(
     originalData,
     options.textThreshold,
-    options.maskExpand
+    options.maskExpand,
+    options.paddingLeft,
+    options.paddingRight
   );
   const resultData = applyColorBlock(
     originalData,
@@ -432,6 +538,7 @@ export async function generatePreview(
   original: string;
   annotated: string;
   annotationLayer: string;
+  annotatedWithBlock: string;
   result: string;
 }> {
   const [originalImg, annotatedImg] = await Promise.all([
@@ -451,9 +558,20 @@ export async function generatePreview(
   const textMask = extractTextMask(
     originalData,
     options.textThreshold,
-    options.maskExpand
+    options.maskExpand,
+    options.paddingLeft,
+    options.paddingRight
   );
   const maskPreview = generateMaskPreview(originalData, textMask);
+
+  // 生成标注图+色块的中间状态预览
+  const annotatedWithBlockData = applyColorBlockToAnnotated(
+    scaledAnnotatedData,
+    textMask,
+    options.blockColor,
+    options.blockOpacity
+  );
+
   const resultData = applyColorBlock(
     originalData,
     scaledAnnotatedData,
@@ -466,6 +584,7 @@ export async function generatePreview(
     original: imageDataToDataURL(originalData),
     annotated: imageDataToDataURL(scaledAnnotatedData),
     annotationLayer: imageDataToDataURL(maskPreview),
+    annotatedWithBlock: imageDataToDataURL(annotatedWithBlockData),
     result: imageDataToDataURL(resultData),
   };
 }

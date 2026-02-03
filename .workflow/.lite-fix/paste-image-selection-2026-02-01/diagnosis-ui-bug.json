@@ -1,0 +1,133 @@
+{
+  "symptom": {
+    "description": "When pasting images using Ctrl+V, users cannot choose whether the pasted image should be set as the original image or the annotated image. The application uses a hardcoded 'smart fill' logic that automatically assigns pasted images: first paste goes to original, second paste goes to annotated, and subsequent pastes replace the original. This removes user agency and forces a specific workflow.",
+    "error_message": null,
+    "stack_trace": null,
+    "frequency": "always",
+    "user_impact": "Users must paste images in a specific order (original first, then annotated) and cannot choose the target slot. If they paste in the wrong order, they must clear and start over, or paste a third time to replace the original. This is particularly frustrating when users have the annotated image ready first or want to replace only the annotated image."
+  },
+  "root_cause": {
+    "file": "src/App.tsx",
+    "line_range": "244-291",
+    "function": "handlePaste (useEffect callback)",
+    "issue": "The paste event handler implements a hardcoded 'smart fill' algorithm (lines 271-282) that automatically determines the target slot based on current state: if originalFile is null, paste goes to original; else if annotatedFile is null, paste goes to annotated; else replace original. There is no UI mechanism for users to specify their intended target before or during the paste operation. The UploadModal component (lines 664-671) provides separate drop zones for original and annotated images, but the global paste handler bypasses this UI entirely.",
+    "confidence": 0.95,
+    "introduced_by": "unknown",
+    "category": "logic_error"
+  },
+  "affected_files": [
+    {
+      "path": "src/App.tsx",
+      "relevance": 0.95,
+      "rationale": "Contains the paste event handler with hardcoded smart fill logic (lines 244-291). This is the primary location where the bug manifests. The logic needs modification to support user selection.",
+      "change_type": "fix_target"
+    },
+    {
+      "path": "src/components/UploadModal.tsx",
+      "relevance": 0.75,
+      "rationale": "Provides the UI structure with separate drop zones for original and annotated images. Could be extended to support paste target selection through visual indicators or active zone highlighting.",
+      "change_type": "needs_update"
+    },
+    {
+      "path": "src/components/FloatingUploadButton.tsx",
+      "relevance": 0.60,
+      "rationale": "Displays upload status and triggers the upload modal. May need updates to show which slot is currently active for paste operations.",
+      "change_type": "needs_update"
+    },
+    {
+      "path": "src/components/UploadDrawer.tsx",
+      "relevance": 0.70,
+      "rationale": "Alternative upload interface with similar structure to UploadModal. Should maintain consistency with any paste target selection mechanism implemented in UploadModal.",
+      "change_type": "needs_update"
+    }
+  ],
+  "reproduction_steps": [
+    "Open the application in single processing mode",
+    "Copy an image to clipboard (the annotated image)",
+    "Press Ctrl+V to paste",
+    "Observe: The image is automatically assigned to 'original' slot (first paste always goes to original)",
+    "Copy another image (the original image)",
+    "Press Ctrl+V again",
+    "Observe: The second image goes to 'annotated' slot",
+    "Result: Images are in wrong slots, user had no choice in the assignment"
+  ],
+  "fix_hints": [
+    {
+      "description": "Add UI state to track the active/selected paste target slot",
+      "approach": "Introduce a new state variable `activePasteTarget: 'original' | 'annotated' | null` in App.tsx. When the UploadModal/UploadDrawer is open, allow users to click on a drop zone to set it as the active paste target. Visual indicators (border highlight, icon, or label) should show which slot is active. The paste handler should respect this selection instead of using smart fill logic.",
+      "code_example": "// In App.tsx\nconst [activePasteTarget, setActivePasteTarget] = useState<'original' | 'annotated' | null>(null);\n\n// In paste handler (line 271-282)\nif (activePasteTarget === 'original') {\n  setOriginalFile(file);\n  showToast('已粘贴为原始图片', 'success');\n} else if (activePasteTarget === 'annotated') {\n  setAnnotatedFile(file);\n  showToast('已粘贴为 AI 标注图片', 'success');\n} else {\n  // Fallback to smart fill if no target selected\n  // ... existing logic\n}",
+      "risk": "low"
+    },
+    {
+      "description": "Enhance UploadModal/UploadDrawer with paste target selection UI",
+      "approach": "Add click handlers to the UploadDropZone components that set the active paste target. Add visual feedback (e.g., a pulsing border, 'Active for paste' badge, or radio button) to indicate which zone is currently selected for paste operations. Include a keyboard shortcut hint (e.g., '1' for original, '2' for annotated) for power users.",
+      "code_example": "// In UploadModal.tsx UploadDropZone\n<div\n  className={`\n    ${isActivePasteTarget ? 'ring-2 ring-primary-500 ring-offset-2' : ''}\n  `}\n  onClick={() => {\n    document.getElementById(inputId)?.click();\n    onSetActivePasteTarget?.(); // New callback\n  }}\n>\n  {isActivePasteTarget && (\n    <div className=\"absolute top-2 right-2 bg-primary-500 text-white text-xs px-2 py-1 rounded\">\n      粘贴目标\n    </div>\n  )}\n  {/* ... existing content */}\n</div>",
+      "risk": "low"
+    },
+    {
+      "description": "Add keyboard shortcuts for direct paste target selection",
+      "approach": "Implement keyboard shortcuts (e.g., Ctrl+1 for original, Ctrl+2 for annotated) that set the active paste target without requiring the modal to be open. This provides a fast workflow for power users. Show a toast notification when the target is changed via keyboard.",
+      "code_example": "// In App.tsx keyboard handler\nif (e.ctrlKey && e.key === '1') {\n  e.preventDefault();\n  setActivePasteTarget('original');\n  showToast('粘贴目标: 原始图片', 'info');\n} else if (e.ctrlKey && e.key === '2') {\n  e.preventDefault();\n  setActivePasteTarget('annotated');\n  showToast('粘贴目标: AI 标注图片', 'info');\n}",
+      "risk": "low"
+    },
+    {
+      "description": "Provide a toggle button in the FloatingUploadButton for quick target switching",
+      "approach": "Add a small toggle or indicator in the FloatingUploadButton that shows and allows changing the active paste target. This keeps the control accessible even when the modal is closed. Use icons or abbreviated text ('原' / '标') to save space.",
+      "code_example": "// In FloatingUploadButton.tsx\n<div className=\"flex gap-1 mt-2\">\n  <button\n    onClick={() => onSetActivePasteTarget('original')}\n    className={`px-2 py-1 text-xs rounded ${\n      activePasteTarget === 'original' ? 'bg-primary-500 text-white' : 'bg-gray-200'\n    }`}\n  >\n    原\n  </button>\n  <button\n    onClick={() => onSetActivePasteTarget('annotated')}\n    className={`px-2 py-1 text-xs rounded ${\n      activePasteTarget === 'annotated' ? 'bg-primary-500 text-white' : 'bg-gray-200'\n    }`}\n  >\n    标\n  </button>\n</div>",
+      "risk": "medium"
+    }
+  ],
+  "dependencies": "React state management (useState), event handling (ClipboardEvent, KeyboardEvent), component props passing (UploadModal, UploadDrawer, FloatingUploadButton), toast notification system",
+  "constraints": "Must maintain backward compatibility with existing drag-and-drop and file input workflows. The smart fill logic should remain as a fallback when no explicit target is selected. Changes should not disrupt the batch processing mode. UI additions must be responsive and work on mobile/tablet screens.",
+  "related_issues": [
+    {
+      "type": "similar_bug",
+      "reference": "src/components/BatchProcessor.tsx:243-244",
+      "description": "Batch mode has separate file arrays for original and annotated, but also lacks explicit user control over file assignment during drag-and-drop. However, batch mode uses filename pattern matching which is more predictable."
+    },
+    {
+      "type": "related_feature",
+      "reference": "src/App.tsx:372-411",
+      "description": "Keyboard shortcuts are already implemented for other actions (Ctrl+S for download, Space for comparison). Adding Ctrl+1/Ctrl+2 for paste target selection would be consistent with existing patterns."
+    }
+  ],
+  "clarification_needs": [
+    {
+      "question": "Should the paste target selection be persistent across sessions or reset when the modal closes?",
+      "context": "If persistent, users can set their preferred default (e.g., always paste to annotated first). If reset, it provides a clean state each time but requires re-selection. Current smart fill logic has implicit persistence (based on which slots are filled).",
+      "options": [
+        "Persistent: Save active paste target to localStorage, restore on app load",
+        "Session-only: Reset to null when modal closes or files are cleared",
+        "Smart default: Reset to null, but auto-select empty slot when modal opens"
+      ]
+    },
+    {
+      "question": "What should be the default paste target when both slots are empty?",
+      "context": "When no explicit target is selected and both slots are empty, should the system default to 'original' (current behavior), 'annotated', or require explicit selection before allowing paste?",
+      "options": [
+        "Default to 'original' (maintain current smart fill behavior as fallback)",
+        "Default to 'annotated' (reverse current behavior)",
+        "Require explicit selection (show toast prompting user to select target)",
+        "Auto-select based on last used target (if available from previous session)"
+      ]
+    },
+    {
+      "question": "Should paste target selection be available when the upload modal is closed?",
+      "context": "Currently, paste works globally even when the modal is closed. Should users be able to set the paste target via keyboard shortcuts or the FloatingUploadButton without opening the modal, or should paste target selection only be available when the modal is open?",
+      "options": [
+        "Global: Allow target selection via keyboard shortcuts (Ctrl+1/Ctrl+2) anytime",
+        "Modal-only: Require modal to be open for target selection, use smart fill otherwise",
+        "Hybrid: Show target indicator in FloatingUploadButton, allow click to change without opening modal"
+      ]
+    }
+  ],
+  "_metadata": {
+    "timestamp": "2026-02-01T00:00:00.000Z",
+    "bug_description": "上传粘贴图片时不能自己选择是原图还是标注图,只能先粘贴原图然后才能粘贴标注图",
+    "source": "cli-explore-agent",
+    "diagnosis_angle": "ui-bug",
+    "diagnosis_index": 1,
+    "total_diagnoses": 2,
+    "duration_seconds": 180
+  }
+}

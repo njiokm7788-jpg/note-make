@@ -1,0 +1,98 @@
+{
+  "summary": "在预览区域添加「标注图+色块」的中间状态预览，展示标注图在非文字区域叠加色块后的效果（最终合成原图之前的状态）。简化预览布局为两个面板：标注图+色块效果 和 最终结果。",
+  "approach": "修改 generatePreview 函数，新增生成标注图色块叠加的中间状态预览。在 App.tsx 中简化对比视图，仅显示两个关键预览：annotatedWithBlock（标注图+色块）和 result（最终结果）。",
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "扩展 generatePreview 返回标注图色块预览",
+      "scope": "src/utils/imageProcessor.ts",
+      "action": "Update",
+      "description": "在 generatePreview 函数中新增 annotatedWithBlock 字段，展示标注图在非文字区域叠加色块后的效果（不包含原图文字区域替换）。",
+      "modification_points": [
+        {
+          "file": "src/utils/imageProcessor.ts",
+          "target": "generatePreview:431-436",
+          "change": "扩展返回类型，添加 annotatedWithBlock: string 字段"
+        },
+        {
+          "file": "src/utils/imageProcessor.ts",
+          "target": "generatePreview:456-463",
+          "change": "在 applyColorBlock 调用前，生成标注图色块叠加的中间状态（仅在非文字区域叠加色块，文字区域保持标注图原样）"
+        },
+        {
+          "file": "src/utils/imageProcessor.ts",
+          "target": "generatePreview:465-470",
+          "change": "在返回对象中添加 annotatedWithBlock 字段"
+        }
+      ],
+      "implementation": [
+        "在返回类型中添加 annotatedWithBlock: string",
+        "创建新函数 applyColorBlockToAnnotated()，仅在标注图非文字区域叠加色块（文字区域保持标注图原样，不替换为原图）",
+        "调用新函数生成 annotatedWithBlockData",
+        "将 annotatedWithBlockData 转换为 DataURL 并添加到返回对象"
+      ],
+      "reference": {
+        "pattern": "applyColorBlock 函数的色块叠加逻辑",
+        "files": ["src/utils/imageProcessor.ts:233-269"],
+        "examples": "参考 applyColorBlock 的 alpha 混合算法，但文字区域使用标注图而非原图"
+      },
+      "acceptance": [
+        "generatePreview 返回对象包含 annotatedWithBlock 字段",
+        "annotatedWithBlock 显示标注图在非文字区域叠加色块的效果",
+        "文字区域保持标注图原样（不是原图）",
+        "TypeScript 类型检查通过"
+      ]
+    },
+    {
+      "id": "T2",
+      "title": "简化 App.tsx 预览布局为双面板",
+      "scope": "src/App.tsx",
+      "action": "Update",
+      "description": "修改对比视图，仅显示两个预览面板：「标注图+色块」和「最终结果」，移除原始图片、AI标注图片、提取的标注层预览。",
+      "modification_points": [
+        {
+          "file": "src/App.tsx",
+          "target": "preview state type:150-155",
+          "change": "扩展 preview 状态类型，添加 annotatedWithBlock 字段"
+        },
+        {
+          "file": "src/App.tsx",
+          "target": "comparison view grid:579-584",
+          "change": "将 4 宫格改为 2 列布局，仅显示 annotatedWithBlock 和 result"
+        }
+      ],
+      "implementation": [
+        "更新 preview 状态类型定义，添加 annotatedWithBlock?: string",
+        "修改对比视图 grid 布局，从 grid-cols-2 的 4 项改为 2 项",
+        "保留两个 ImagePreview：标注图+色块（annotatedWithBlock）和最终结果（result）",
+        "更新预览标题：「标注图+色块」和「最终结果」"
+      ],
+      "reference": {
+        "pattern": "现有 ImagePreview 组件使用模式",
+        "files": ["src/App.tsx:579-584", "src/components/ImagePreview.tsx"],
+        "examples": "<ImagePreview src={preview.result} title=\"最终结果\" />"
+      },
+      "acceptance": [
+        "对比视图仅显示 2 个预览面板",
+        "左侧显示「标注图+色块」预览",
+        "右侧显示「最终结果」预览",
+        "布局美观，响应式适配正常"
+      ],
+      "depends_on": ["T1"]
+    }
+  ],
+  "focus_paths": [
+    "src/utils/imageProcessor.ts",
+    "src/App.tsx"
+  ],
+  "estimated_time": "20-30 minutes",
+  "recommended_execution": "Agent",
+  "complexity": "Low",
+  "_metadata": {
+    "timestamp": "2026-02-01T23:45:00.000Z",
+    "source": "direct-planning",
+    "planning_mode": "direct",
+    "exploration_angles": ["patterns", "integration-points", "ui-patterns"],
+    "duration_seconds": 120
+  }
+}

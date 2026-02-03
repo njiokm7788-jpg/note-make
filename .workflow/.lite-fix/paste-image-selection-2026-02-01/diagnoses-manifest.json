@@ -1,0 +1,21 @@
+{
+  "session_id": "paste-image-selection-2026-02-01",
+  "bug_description": "上传粘贴图片时不能自己选择是原图还是标注图,只能先粘贴原图然后才能粘贴标注图",
+  "timestamp": "2026-02-01T00:00:00.000Z",
+  "severity": "Medium",
+  "diagnosis_count": 2,
+  "diagnoses": [
+    {
+      "angle": "ui-bug",
+      "file": "diagnosis-ui-bug.json",
+      "path": ".workflow/.lite-fix/paste-image-selection-2026-02-01/diagnosis-ui-bug.json",
+      "index": 1
+    },
+    {
+      "angle": "event-handling",
+      "file": "diagnosis-event-handling.json",
+      "path": ".workflow/.lite-fix/paste-image-selection-2026-02-01/diagnosis-event-handling.json",
+      "index": 2
+    }
+  ]
+}

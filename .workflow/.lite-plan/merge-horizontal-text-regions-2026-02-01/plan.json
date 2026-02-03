@@ -1,0 +1,25 @@
+{
+  "summary": "修改 extractTextMask 函数，在圆形膨胀后添加行级别水平合并逻辑，将同一行内连续的文字区域扩展为完整的色块条",
+  "approach": "在现有的圆形膨胀步骤后，添加第三步：逐行扫描遮罩，找到每行的文字区域边界（最左和最右的文字像素），然后填充整行从左边界到右边界的所有像素",
+  "tasks": [
+    {
+      "id": "IMPL-001",
+      "title": "添加行级别水平合并逻辑到 extractTextMask 函数",
+      "scope": "修改 src/utils/imageProcessor.ts 中的 extractTextMask 函数",
+      "description": "在圆形膨胀步骤后添加第三步：\n1. 逐行扫描膨胀后的遮罩\n2. 找到每行的最左和最右文字像素位置\n3. 填充该行从 minX 到 maxX 的所有像素为 true\n\n这样同一行内的所有文字区域会被合并成一个连续的色块条",
+      "files": ["src/utils/imageProcessor.ts"],
+      "depends_on": [],
+      "execution_group": 1,
+      "complexity": "Low"
+    }
+  ],
+  "estimated_time": "10-15 minutes",
+  "recommended_execution": "Agent",
+  "complexity": "Low",
+  "_metadata": {
+    "timestamp": "2026-02-01T18:30:00.000Z",
+    "source": "direct-planning",
+    "planning_mode": "direct",
+    "exploration_angles": ["algorithm"]
+  }
+}

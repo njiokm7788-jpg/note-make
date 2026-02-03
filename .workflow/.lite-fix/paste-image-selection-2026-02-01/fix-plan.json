@@ -1,0 +1,171 @@
+{
+  "summary": "实现基于鼠标悬停的粘贴目标选择机制。当用户将鼠标悬停在上传区域时,该区域将被设置为粘贴目标并显示高亮边框。如果没有悬停,则保留原有的顺序回退逻辑(原图→标注图→替换原图)。",
+  "root_cause": "App.tsx 中的全局粘贴事件处理器(第 246-291 行)实现了硬编码的顺序逻辑,自动决定粘贴目标而不提供用户选择机制。UploadModal 和 UploadDrawer 组件虽然有独立的上传区域,但粘贴事件处理器完全绕过了这些 UI 结构。",
+  "strategy": "comprehensive_fix",
+  "tasks": [
+    {
+      "id": "FIX1",
+      "title": "添加粘贴目标状态管理和 hover 检测",
+      "scope": "src/App.tsx",
+      "action": "Add",
+      "description": "在 App.tsx 中添加 activePasteTarget 状态变量,用于跟踪当前的粘贴目标。修改粘贴事件处理器以支持基于 activePasteTarget 的目标选择,同时保留原有顺序逻辑作为回退。",
+      "modification_points": [
+        {
+          "file": "src/App.tsx",
+          "target": "State declarations (around line 50-80)",
+          "change": "添加 activePasteTarget 状态: useState<'original' | 'annotated' | null>(null)"
+        },
+        {
+          "file": "src/App.tsx",
+          "target": "handlePaste function (lines 246-291)",
+          "change": "修改粘贴逻辑:优先使用 activePasteTarget,如果为 null 则使用原有顺序逻辑"
+        }
+      ],
+      "implementation": [
+        "在 App.tsx 状态声明区域添加: const [activePasteTarget, setActivePasteTarget] = useState<'original' | 'annotated' | null>(null)",
+        "修改 handlePaste 函数中的文件分配逻辑(第 271-282 行):",
+        "  - 首先检查 activePasteTarget 是否有值",
+        "  - 如果 activePasteTarget === 'original',设置 originalFile",
+        "  - 如果 activePasteTarget === 'annotated',设置 annotatedFile",
+        "  - 如果 activePasteTarget === null,使用原有的顺序逻辑作为回退",
+        "添加 setActivePasteTarget 回调函数,传递给 UploadModal 和 UploadDrawer 组件"
+      ],
+      "verification": [
+        "悬停在原图区域后粘贴,图片应该进入原图槽",
+        "悬停在标注图区域后粘贴,图片应该进入标注图槽",
+        "不悬停任何区域直接粘贴,应该使用原有顺序逻辑(第一次粘贴到原图)"
+      ],
+      "depends_on": [],
+      "risk": "low",
+      "cli_execution_id": "paste-fix-FIX1",
+      "cli_execution": {
+        "strategy": "new"
+      }
+    },
+    {
+      "id": "FIX2",
+      "title": "在 UploadModal 中添加 hover 检测和视觉反馈",
+      "scope": "src/components/UploadModal.tsx",
+      "action": "Update",
+      "description": "为 UploadModal 中的两个 UploadDropZone 组件添加 onMouseEnter 和 onMouseLeave 事件处理器,在鼠标悬停时设置 activePasteTarget 并显示高亮边框。",
+      "modification_points": [
+        {
+          "file": "src/components/UploadModal.tsx",
+          "target": "Component props (around line 10-20)",
+          "change": "添加 activePasteTarget 和 onSetActivePasteTarget props"
+        },
+        {
+          "file": "src/components/UploadModal.tsx",
+          "target": "UploadDropZone for original (around line 328-334)",
+          "change": "添加 onMouseEnter/onMouseLeave 处理器和条件样式"
+        },
+        {
+          "file": "src/components/UploadModal.tsx",
+          "target": "UploadDropZone for annotated (around line 335-341)",
+          "change": "添加 onMouseEnter/onMouseLeave 处理器和条件样式"
+        }
+      ],
+      "implementation": [
+        "在 UploadModal 组件的 props 接口中添加:",
+        "  - activePasteTarget?: 'original' | 'annotated' | null",
+        "  - onSetActivePasteTarget?: (target: 'original' | 'annotated' | null) => void",
+        "为原图 UploadDropZone 添加事件处理器:",
+        "  - onMouseEnter={() => onSetActivePasteTarget?.('original')}",
+        "  - onMouseLeave={() => onSetActivePasteTarget?.(null)}",
+        "为标注图 UploadDropZone 添加相同的事件处理器(目标为 'annotated')",
+        "在两个 UploadDropZone 的 className 中添加条件样式:",
+        "  - 当 activePasteTarget 匹配时添加 'ring-2 ring-blue-500' 类"
+      ],
+      "verification": [
+        "鼠标悬停在原图上传区域时,该区域显示蓝色高亮边框",
+        "鼠标悬停在标注图上传区域时,该区域显示蓝色高亮边框",
+        "鼠标移出上传区域时,高亮边框消失"
+      ],
+      "depends_on": ["FIX1"],
+      "risk": "low",
+      "cli_execution_id": "paste-fix-FIX2",
+      "cli_execution": {
+        "strategy": "resume",
+        "resume_from": "paste-fix-FIX1"
+      }
+    },
+    {
+      "id": "FIX3",
+      "title": "在 UploadDrawer 中添加 hover 检测和视觉反馈",
+      "scope": "src/components/UploadDrawer.tsx",
+      "action": "Update",
+      "description": "为 UploadDrawer 中的两个 UploadDropZone 组件添加与 UploadModal 相同的 hover 检测和视觉反馈机制,保持 UI 一致性。",
+      "modification_points": [
+        {
+          "file": "src/components/UploadDrawer.tsx",
+          "target": "Component props (around line 10-20)",
+          "change": "添加 activePasteTarget 和 onSetActivePasteTarget props"
+        },
+        {
+          "file": "src/components/UploadDrawer.tsx",
+          "target": "UploadDropZone for original (around line 280-286)",
+          "change": "添加 onMouseEnter/onMouseLeave 处理器和条件样式"
+        },
+        {
+          "file": "src/components/UploadDrawer.tsx",
+          "target": "UploadDropZone for annotated (around line 287-293)",
+          "change": "添加 onMouseEnter/onMouseLeave 处理器和条件样式"
+        }
+      ],
+      "implementation": [
+        "在 UploadDrawer 组件的 props 接口中添加与 UploadModal 相同的 props",
+        "为两个 UploadDropZone 添加与 UploadModal 相同的事件处理器和条件样式",
+        "确保高亮边框样式与 UploadModal 保持一致"
+      ],
+      "verification": [
+        "在 Drawer 模式下,鼠标悬停行为与 Modal 模式一致",
+        "高亮边框样式在两种模式下保持一致"
+      ],
+      "depends_on": ["FIX2"],
+      "risk": "low",
+      "cli_execution_id": "paste-fix-FIX3",
+      "cli_execution": {
+        "strategy": "resume",
+        "resume_from": "paste-fix-FIX2"
+      }
+    }
+  ],
+  "flow_control": {
+    "execution_order": [
+      {
+        "phase": "sequential-1",
+        "tasks": ["FIX1", "FIX2", "FIX3"],
+        "type": "sequential"
+      }
+    ],
+    "exit_conditions": {
+      "success": "所有三个任务完成,粘贴功能支持 hover 选择且回退逻辑正常工作",
+      "failure": "任何任务失败或粘贴功能出现回归问题"
+    }
+  },
+  "focus_paths": [
+    "src/App.tsx",
+    "src/components/UploadModal.tsx",
+    "src/components/UploadDrawer.tsx"
+  ],
+  "test_strategy": {
+    "scope": "manual",
+    "manual_verification": [
+      "测试场景 1: 悬停在原图区域后粘贴,验证图片进入原图槽",
+      "测试场景 2: 悬停在标注图区域后粘贴,验证图片进入标注图槽",
+      "测试场景 3: 不悬停直接粘贴,验证使用原有顺序逻辑",
+      "测试场景 4: 在 Modal 和 Drawer 两种模式下验证一致性",
+      "测试场景 5: 验证高亮边框在悬停时正确显示和消失"
+    ]
+  },
+  "estimated_time": "30-45 分钟",
+  "recommended_execution": "Agent",
+  "severity": "Medium",
+  "risk_level": "low",
+  "_metadata": {
+    "timestamp": "2026-02-01T00:00:00.000Z",
+    "source": "direct-planning",
+    "planning_mode": "direct",
+    "diagnosis_angles": ["ui-bug", "event-handling"]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "type": "methods",
+  "depth": "detailed",
+  "scope": "**/*",
+  "focus_areas": [
+    "Core Algorithms",
+    "Critical Paths",
+    "Public APIs",
+    "Complex Logic",
+    "Implementation Principles",
+    "Processing Flow"
+  ],
+  "user_intent": "了解项目的实现原理和流程",
+  "created_at": "2026-02-01T16:00:00"
+}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 interface ImagePreviewProps {
   src: string;
@@ -73,6 +73,8 @@ function ImageZoomModal({ src, title, onClose }: ImageZoomModalProps) {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const dragDistanceRef = useRef(0);
+  const hasDraggedRef = useRef(false);
 
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
@@ -84,11 +86,22 @@ function ImageZoomModal({ src, title, onClose }: ImageZoomModalProps) {
     if (scale > 1) {
       setIsDragging(true);
       setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+      dragDistanceRef.current = 0;
+      hasDraggedRef.current = false;
     }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (isDragging) {
+      const deltaX = e.clientX - dragStart.x - position.x;
+      const deltaY = e.clientY - dragStart.y - position.y;
+      dragDistanceRef.current += Math.abs(deltaX) + Math.abs(deltaY);
+
+      // 只有移动距离超过 5px 才认为是拖动
+      if (dragDistanceRef.current > 5) {
+        hasDraggedRef.current = true;
+      }
+
       setPosition({
         x: e.clientX - dragStart.x,
         y: e.clientY - dragStart.y,
@@ -96,8 +109,12 @@ function ImageZoomModal({ src, title, onClose }: ImageZoomModalProps) {
     }
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (e: React.MouseEvent) => {
     setIsDragging(false);
+    // 阻止事件冒泡,防止触发 onClick
+    if (hasDraggedRef.current) {
+      e.stopPropagation();
+    }
   };
 
   const resetView = () => {
@@ -165,7 +182,7 @@ function ImageZoomModal({ src, title, onClose }: ImageZoomModalProps) {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        onClick={(e) => e.target === e.currentTarget && onClose()}
+        onClick={(e) => !hasDraggedRef.current && e.target === e.currentTarget && onClose()}
         style={{ cursor: scale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
       >
         {/* 棋盘格背景 */}

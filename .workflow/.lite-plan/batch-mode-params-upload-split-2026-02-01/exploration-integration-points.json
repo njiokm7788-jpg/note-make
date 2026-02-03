@@ -1,0 +1,121 @@
+{
+  "project_structure": "React component-based architecture with centralized state in App.tsx. Upload components (UploadModal, UploadDrawer, FloatingUploadButton) handle file selection. BatchProcessor manages batch file pairing and processing. Integration points exist between upload components, state management, and processing logic.",
+  "relevant_files": [
+    {
+      "path": "src/components/UploadModal.tsx",
+      "relevance": 0.95,
+      "rationale": "Primary upload interface for single mode. Uses UploadDropZone pattern with separate zones for original (lines 45-70) and annotated (lines 72-97) images. This pattern should be replicated in batch mode."
+    },
+    {
+      "path": "src/components/UploadDrawer.tsx",
+      "relevance": 0.90,
+      "rationale": "Alternative upload interface. Shares UploadDropZone pattern with UploadModal. Lines 50-110 show separate drop zones implementation."
+    },
+    {
+      "path": "src/components/BatchProcessor.tsx",
+      "relevance": 0.88,
+      "rationale": "Batch mode main component. Currently uses single upload area (lines 80-120). Needs to integrate separate upload windows for original and annotated images."
+    },
+    {
+      "path": "src/App.tsx",
+      "relevance": 0.85,
+      "rationale": "Central integration point. Lines 150-180 manage file state (originalFile, annotatedFile). Lines 198-203 handle batch option changes. Needs to coordinate separate upload windows in batch mode."
+    },
+    {
+      "path": "src/components/FloatingUploadButton.tsx",
+      "relevance": 0.75,
+      "rationale": "Triggers upload modal in single mode. May need batch mode equivalent for separate upload windows."
+    },
+    {
+      "path": "src/components/ProcessingPanel.tsx",
+      "relevance": 0.80,
+      "rationale": "Batch mode parameter UI. Receives options via props. Integration point for parameter synchronization between single and batch modes."
+    }
+  ],
+  "patterns": [
+    {
+      "name": "Separate Upload Zones Pattern",
+      "description": "UploadModal and UploadDrawer use separate drop zones for original and annotated images",
+      "example": "Two UploadDropZone components side-by-side, each handling one image type",
+      "usage": "Provides clear visual separation and prevents file type confusion"
+    },
+    {
+      "name": "State Lifting Pattern",
+      "description": "File state (originalFile, annotatedFile) managed in App.tsx, passed down via props",
+      "example": "App.tsx maintains state, passes onOriginalSelect/onAnnotatedSelect callbacks to upload components",
+      "usage": "Centralized state management for file uploads"
+    },
+    {
+      "name": "Callback-Based Integration",
+      "description": "Upload components communicate with parent via callback functions",
+      "example": "onOriginalSelect={(file) => setOriginalFile(file)}",
+      "usage": "Decouples upload UI from state management logic"
+    }
+  ],
+  "dependencies": {
+    "internal": [
+      "fileUtils.ts: isImageFile validation function",
+      "imageProcessor.ts: ProcessingOptions interface"
+    ],
+    "external": [
+      "react: useState, useCallback for state management",
+      "react-dom: File input and drag-and-drop events"
+    ]
+  },
+  "integration_points": [
+    {
+      "location": "src/App.tsx:150-180",
+      "description": "File state management - originalFile and annotatedFile state variables",
+      "relevance": "high"
+    },
+    {
+      "location": "src/App.tsx:198-203",
+      "description": "handleBatchOptionChange callback - integrates parameter changes with preset system",
+      "relevance": "high"
+    },
+    {
+      "location": "src/components/BatchProcessor.tsx:80-120",
+      "description": "Current single upload area - needs to be replaced with separate upload windows",
+      "relevance": "high"
+    },
+    {
+      "location": "src/components/UploadModal.tsx:45-97",
+      "description": "UploadDropZone pattern implementation - template for batch mode upload windows",
+      "relevance": "high"
+    }
+  ],
+  "constraints": [
+    "Must maintain existing file validation logic (isImageFile)",
+    "Must preserve drag-and-drop functionality",
+    "Must integrate with existing state management in App.tsx",
+    "Must follow UploadDropZone pattern for consistency",
+    "Batch mode upload windows should match single mode UX"
+  ],
+  "clarification_needs": [
+    {
+      "question": "批量模式的上传窗口应该如何触发？",
+      "context": "单张模式使用 FloatingUploadButton 触发 UploadModal。批量模式需要确定如何触发分离的上传窗口。",
+      "options": [
+        "使用两个独立按钮（一个触发原图上传，一个触发标注图上传）",
+        "使用单一按钮打开包含两个上传区域的模态框",
+        "在批量模式界面直接显示两个上传区域（无需触发按钮）"
+      ],
+      "recommended": 2
+    },
+    {
+      "question": "批量模式的文件配对逻辑应该如何处理？",
+      "context": "当前 BatchProcessor 使用文件名匹配自动配对。分离上传窗口后，需要确定配对策略。",
+      "options": [
+        "保持自动配对（用户分别上传，系统自动匹配文件名）",
+        "手动配对（用户明确指定哪些文件是一对）",
+        "混合模式（自动配对 + 手动调整）"
+      ],
+      "recommended": 0
+    }
+  ],
+  "_metadata": {
+    "exploration_angle": "integration-points",
+    "exploration_index": 2,
+    "timestamp": "2026-02-01T19:00:00Z"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "type": "architecture",
+  "depth": "overview",
+  "scope": "**/*",
+  "focus_areas": ["Layer Structure", "Module Dependencies", "Entry Points", "Data Flow"],
+  "timestamp": "2026-02-01T19:00:00"
+}

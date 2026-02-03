@@ -1,0 +1,126 @@
+{
+  "project_structure": "React application with no test framework configured. Uses TypeScript, React 19, and Vite. Testing infrastructure needs to be established for parameter synchronization and upload window separation features.",
+  "relevant_files": [
+    {
+      "path": "src/utils/imageProcessor.ts",
+      "relevance": 0.95,
+      "rationale": "Defines ProcessingOptions interface (lines 6-19) with 7 parameters that need validation testing. Preset management functions (lines 33-96) require testing for consistency between single and batch modes."
+    },
+    {
+      "path": "src/components/ProcessingPanel.tsx",
+      "relevance": 0.90,
+      "rationale": "Batch mode parameter UI. Needs tests for option change callbacks, preset switching, and parameter validation to ensure consistency with single mode."
+    },
+    {
+      "path": "src/components/BatchProcessor.tsx",
+      "relevance": 0.88,
+      "rationale": "File pairing logic (lines 29-59) uses regex patterns. Needs tests for pairing accuracy, edge cases (multiple matches, naming variations), and error handling."
+    },
+    {
+      "path": "src/utils/fileUtils.ts",
+      "relevance": 0.85,
+      "rationale": "Image validation (isImageFile), file naming utilities. Needs tests for file type validation and batch processing error handling."
+    },
+    {
+      "path": "src/App.tsx",
+      "relevance": 0.82,
+      "rationale": "Central state management. Needs integration tests for parameter persistence when switching between single/batch modes and localStorage synchronization."
+    },
+    {
+      "path": "src/components/UploadModal.tsx",
+      "relevance": 0.78,
+      "rationale": "Upload interface with file validation. Needs tests for drag-and-drop, file selection, and validation logic."
+    }
+  ],
+  "patterns": [
+    {
+      "name": "No Test Framework",
+      "description": "Project currently has no testing infrastructure (no Vitest, Jest, or React Testing Library)",
+      "example": "package.json has no test dependencies or test scripts",
+      "usage": "Testing infrastructure needs to be established before implementing new features"
+    },
+    {
+      "name": "Parameter Validation Pattern",
+      "description": "ProcessingOptions parameters need range validation and type checking",
+      "example": "textThreshold: 0-255, maskExpand: 0-50, blockOpacity: 0-1",
+      "usage": "Ensure parameter values are within valid ranges across both modes"
+    },
+    {
+      "name": "Preset Persistence Pattern",
+      "description": "User presets stored in localStorage need consistency testing",
+      "example": "loadUserPresets(), addUserPreset(), updateUserPreset() functions",
+      "usage": "Verify preset data integrity and synchronization between modes"
+    }
+  ],
+  "dependencies": {
+    "internal": [
+      "imageProcessor.ts: Core algorithms and preset management",
+      "fileUtils.ts: File validation and batch processing"
+    ],
+    "external": [
+      "None: No test framework dependencies currently installed"
+    ],
+    "recommended_test_dependencies": [
+      "vitest: Fast unit test framework compatible with Vite",
+      "@testing-library/react: React component testing utilities",
+      "@testing-library/user-event: User interaction simulation",
+      "happy-dom or jsdom: DOM environment for tests"
+    ]
+  },
+  "integration_points": [
+    {
+      "location": "src/utils/imageProcessor.ts:6-19",
+      "description": "ProcessingOptions interface definition - needs validation tests",
+      "relevance": "high"
+    },
+    {
+      "location": "src/utils/imageProcessor.ts:33-96",
+      "description": "Preset management functions - need persistence and consistency tests",
+      "relevance": "high"
+    },
+    {
+      "location": "src/App.tsx:198-203",
+      "description": "handleBatchOptionChange - needs integration test for preset auto-save",
+      "relevance": "high"
+    },
+    {
+      "location": "src/components/BatchProcessor.tsx:29-59",
+      "description": "File pairing logic - needs unit tests for regex matching accuracy",
+      "relevance": "medium"
+    }
+  ],
+  "constraints": [
+    "No existing test infrastructure - needs to be set up first",
+    "Tests must cover parameter synchronization between single and batch modes",
+    "Tests must verify preset persistence and consistency",
+    "Tests must validate file pairing logic accuracy",
+    "Tests should use Vitest for compatibility with Vite build system"
+  ],
+  "clarification_needs": [
+    {
+      "question": "是否需要在实现新功能前建立测试框架？",
+      "context": "项目当前没有测试基础设施。新功能（参数同步和上传窗口分离）涉及复杂的状态管理和文件处理逻辑，建议先建立测试框架。",
+      "options": [
+        "先建立测试框架（Vitest + React Testing Library），然后实现新功能",
+        "先实现新功能，后续再补充测试",
+        "仅为关键逻辑添加单元测试，不建立完整测试框架"
+      ],
+      "recommended": 0
+    },
+    {
+      "question": "测试覆盖范围应该包括哪些？",
+      "context": "新功能涉及参数同步、上传窗口分离、文件配对等多个方面。需要确定测试优先级。",
+      "options": [
+        "全面覆盖（单元测试 + 集成测试 + E2E测试）",
+        "重点覆盖（核心逻辑的单元测试 + 关键流程的集成测试）",
+        "最小覆盖（仅核心算法的单元测试）"
+      ],
+      "recommended": 1
+    }
+  ],
+  "_metadata": {
+    "exploration_angle": "testing",
+    "exploration_index": 3,
+    "timestamp": "2026-02-01T19:00:00Z"
+  }
+}
