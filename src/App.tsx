@@ -158,6 +158,20 @@ function App() {
     result: string;
   } | null>(null);
 
+  // 回收旧的 Object URL 防止内存泄漏（对 DataURL 字符串为无操作，兼容 fallback 路径）
+  const prevPreviewRef = useRef<typeof preview>(null);
+  useEffect(() => {
+    const prev = prevPreviewRef.current;
+    if (prev && prev !== preview) {
+      URL.revokeObjectURL(prev.original);
+      URL.revokeObjectURL(prev.annotated);
+      URL.revokeObjectURL(prev.annotationLayer);
+      URL.revokeObjectURL(prev.annotatedWithBlock);
+      URL.revokeObjectURL(prev.result);
+    }
+    prevPreviewRef.current = preview;
+  }, [preview]);
+
   // 预览视图模式：简化视图 vs 对比视图
   const [showComparison, setShowComparison] = useState(false);
 

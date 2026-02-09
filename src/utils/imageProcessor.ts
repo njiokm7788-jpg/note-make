@@ -1,31 +1,12 @@
 /**
- * 图像处理核心工具
- * 反向遮罩叠加模式：清晰图检测文字区域，模糊图对应位置添加色块
+ * 图像处理门面模块
+ * 自动检测 Web Worker + OffscreenCanvas 支持，优先在 Worker 线程处理
+ * 不支持时回退到主线程同步实现
  */
 
-export interface ProcessingOptions {
-  /** 文字检测亮度阈值 (0-255)，低于此值的像素被视为文字 */
-  textThreshold: number;
-  /** 遮罩膨胀半径 (像素)，用于确保完全覆盖文字 */
-  maskExpand: number;
-  /** 色块颜色 (CSS颜色值) */
-  blockColor: string;
-  /** 色块透明度 (0-1) */
-  blockOpacity: number;
-  /** 色块左侧补偿 (像素)，向左扩展色块条边界 */
-  paddingLeft: number;
-  /** 色块右侧补偿 (像素)，向右扩展色块条边界 */
-  paddingRight: number;
-}
-
-export const defaultProcessingOptions: ProcessingOptions = {
-  textThreshold: 200,
-  maskExpand: 2,
-  blockColor: '#FFFF00',
-  blockOpacity: 0.3,
-  paddingLeft: 0,
-  paddingRight: 0,
-};
+// 重新导出核心类型和常量
+export { defaultProcessingOptions } from './imageProcessorCore';
+export type { ProcessingOptions } from './imageProcessorCore';
 
 /**
  * 预设方案接口
@@ -34,7 +15,7 @@ export interface Preset {
   id: string;
   name: string;
   description: string;
-  options: ProcessingOptions;
+  options: import('./imageProcessorCore').ProcessingOptions;
 }
 
 /**
@@ -107,18 +88,17 @@ export function loadUserPresets(): Preset[] {
     if (saved) {
       return JSON.parse(saved) as Preset[];
     }
-  } catch {}
-  // 首次使用，返回默认预设
+  } catch { /* ignore */ }
   return [...defaultPresets];
 }
 
 export function saveUserPresets(presets: Preset[]): void {
   try {
     localStorage.setItem(USER_PRESETS_KEY, JSON.stringify(presets.slice(0, MAX_PRESETS)));
-  } catch {}
+  } catch { /* ignore */ }
 }
 
-export function addUserPreset(name: string, options: ProcessingOptions, existing: Preset[]): Preset[] {
+export function addUserPreset(name: string, options: import('./imageProcessorCore').ProcessingOptions, existing: Preset[]): Preset[] {
   if (existing.length >= MAX_PRESETS) {
     return existing;
   }
@@ -139,7 +119,7 @@ export function removeUserPreset(id: string, existing: Preset[]): Preset[] {
   return updated;
 }
 
-export function updateUserPreset(id: string, options: ProcessingOptions, existing: Preset[]): Preset[] {
+export function updateUserPreset(id: string, options: import('./imageProcessorCore').ProcessingOptions, existing: Preset[]): Preset[] {
   const updated = existing.map(p => p.id === id ? { ...p, options } : p);
   saveUserPresets(updated);
   return updated;
@@ -151,440 +131,148 @@ export function resetToDefaultPresets(): Preset[] {
   return defaults;
 }
 
-/**
- * 解析 CSS 颜色值为 RGB
- * 支持 HEX 格式: #RGB, #RRGGBB
- */
-function parseColor(color: string): { r: number; g: number; b: number } {
-  const hex = color.replace('#', '');
+// ============ Worker 门面层 ============
 
-  if (/^[0-9a-fA-F]{3}$/.test(hex)) {
-    return {
-      r: parseInt(hex[0] + hex[0], 16),
-      g: parseInt(hex[1] + hex[1], 16),
-      b: parseInt(hex[2] + hex[2], 16),
-    };
-  }
-
-  if (/^[0-9a-fA-F]{6}$/.test(hex)) {
-    return {
-      r: parseInt(hex.slice(0, 2), 16),
-      g: parseInt(hex.slice(2, 4), 16),
-      b: parseInt(hex.slice(4, 6), 16),
-    };
-  }
-
-  // 默认返回黄色
-  return { r: 255, g: 255, b: 0 };
-}
-
-/**
- * 计算像素亮度 (0-255)
- */
-function getLuminance(r: number, g: number, b: number): number {
-  return 0.299 * r + 0.587 * g + 0.114 * b;
-}
-
-/**
- * 提取文字区域遮罩
- * 返回一个布尔数组，标记哪些像素是文字区域
- */
-function extractTextMask(
-  imageData: ImageData,
-  textThreshold: number,
-  expandRadius: number,
-  paddingLeft: number = 0,
-  paddingRight: number = 0
-): boolean[] {
-  const { width, height, data } = imageData;
-  const mask = new Array<boolean>(width * height).fill(false);
-
-  // 第一步：检测暗色像素（文字）
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const idx = (y * width + x) * 4;
-      const luminance = getLuminance(data[idx], data[idx + 1], data[idx + 2]);
-
-      // 亮度低于阈值的像素被视为文字
-      if (luminance < textThreshold) {
-        mask[y * width + x] = true;
-      }
-    }
-  }
-
-  // 第二步：圆形膨胀遮罩（扩展文字区域）
-  let currentMask = mask;
-  if (expandRadius > 0) {
-    const expandedMask = new Array<boolean>(width * height).fill(false);
-
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        if (mask[y * width + x]) {
-          for (let dy = -expandRadius; dy <= expandRadius; dy++) {
-            for (let dx = -expandRadius; dx <= expandRadius; dx++) {
-              const nx = x + dx;
-              const ny = y + dy;
-
-              if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                if (dx * dx + dy * dy <= expandRadius * expandRadius) {
-                  expandedMask[ny * width + nx] = true;
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    currentMask = expandedMask;
-  }
-
-  // 第三步：行级别水平合并（同一行内的文字区域合并为色块条）+ 左右补偿
-  const mergedMask = new Array<boolean>(width * height).fill(false);
-
-  for (let y = 0; y < height; y++) {
-    let minX = -1;
-    let maxX = -1;
-
-    // 找到该行的最左和最右文字像素
-    for (let x = 0; x < width; x++) {
-      if (currentMask[y * width + x]) {
-        if (minX === -1) {
-          minX = x;
-        }
-        maxX = x;
-      }
-    }
-
-    // 填充该行从 minX 到 maxX 的所有像素，并应用左右补偿
-    if (minX !== -1 && maxX !== -1) {
-      const paddedMinX = Math.max(0, minX - paddingLeft);
-      const paddedMaxX = Math.min(width - 1, maxX + paddingRight);
-      for (let x = paddedMinX; x <= paddedMaxX; x++) {
-        mergedMask[y * width + x] = true;
-      }
-    }
-  }
-
-  return mergedMask;
-}
-
-/**
- * 在遮罩区域应用色块叠加
- * 文字区域：色块遮住标注图模糊文字 + 原图清晰文字叠加（正片叠底效果）
- * 非文字区域：保持标注图原样
- */
-function applyColorBlock(
-  originalData: ImageData,
-  annotatedData: ImageData,
-  textMask: boolean[],
-  blockColor: string,
-  blockOpacity: number
-): ImageData {
-  const { width, height } = originalData;
-  const outputData = new ImageData(width, height);
-  const output = outputData.data;
-  const original = originalData.data;
-  const annotated = annotatedData.data;
-  const color = parseColor(blockColor);
-
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const idx = (y * width + x) * 4;
-      const maskIdx = y * width + x;
-
-      if (textMask[maskIdx]) {
-        // 文字区域：色块 + 原图文字叠加
-        // 使用正片叠底效果：白色背景变成色块颜色，黑色文字保持清晰
-        const origR = original[idx];
-        const origG = original[idx + 1];
-        const origB = original[idx + 2];
-
-        // 正片叠底混合：result = (color * original) / 255
-        // 再根据 blockOpacity 与原图混合，控制色块强度
-        const blendR = (color.r * origR) / 255;
-        const blendG = (color.g * origG) / 255;
-        const blendB = (color.b * origB) / 255;
-
-        output[idx] = Math.round(origR * (1 - blockOpacity) + blendR * blockOpacity);
-        output[idx + 1] = Math.round(origG * (1 - blockOpacity) + blendG * blockOpacity);
-        output[idx + 2] = Math.round(origB * (1 - blockOpacity) + blendB * blockOpacity);
-        output[idx + 3] = 255;
-      } else {
-        // 非文字区域：保持标注图原样
-        output[idx] = annotated[idx];
-        output[idx + 1] = annotated[idx + 1];
-        output[idx + 2] = annotated[idx + 2];
-        output[idx + 3] = 255;
-      }
-    }
-  }
-
-  return outputData;
-}
-
-/**
- * 在标注图上应用色块叠加（用于预览中间状态）
- * 文字区域：在标注图上叠加色块（遮住模糊文字）
- * 非文字区域：保持标注图原样
- */
-function applyColorBlockToAnnotated(
-  annotatedData: ImageData,
-  textMask: boolean[],
-  blockColor: string,
-  blockOpacity: number
-): ImageData {
-  const { width, height } = annotatedData;
-  const outputData = new ImageData(width, height);
-  const output = outputData.data;
-  const annotated = annotatedData.data;
-  const color = parseColor(blockColor);
-
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const idx = (y * width + x) * 4;
-      const maskIdx = y * width + x;
-
-      if (textMask[maskIdx]) {
-        // 文字区域：在标注图上叠加色块（遮住模糊文字）
-        output[idx] = Math.round(annotated[idx] * (1 - blockOpacity) + color.r * blockOpacity);
-        output[idx + 1] = Math.round(annotated[idx + 1] * (1 - blockOpacity) + color.g * blockOpacity);
-        output[idx + 2] = Math.round(annotated[idx + 2] * (1 - blockOpacity) + color.b * blockOpacity);
-        output[idx + 3] = 255;
-      } else {
-        // 非文字区域：保持标注图原样
-        output[idx] = annotated[idx];
-        output[idx + 1] = annotated[idx + 1];
-        output[idx + 2] = annotated[idx + 2];
-        output[idx + 3] = 255;
-      }
-    }
-  }
-
-  return outputData;
-}
-
-/**
- * 生成遮罩预览图（用于调试和预览）
- */
-function generateMaskPreview(
-  originalData: ImageData,
-  textMask: boolean[]
-): ImageData {
-  const { width, height, data } = originalData;
-  const outputData = new ImageData(width, height);
-  const output = outputData.data;
-
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const idx = (y * width + x) * 4;
-      const maskIdx = y * width + x;
-
-      if (textMask[maskIdx]) {
-        // 文字区域：显示半透明红色
-        output[idx] = Math.round(data[idx] * 0.5 + 255 * 0.5);
-        output[idx + 1] = Math.round(data[idx + 1] * 0.5);
-        output[idx + 2] = Math.round(data[idx + 2] * 0.5);
-        output[idx + 3] = 255;
-      } else {
-        // 非文字区域：保持原样
-        output[idx] = data[idx];
-        output[idx + 1] = data[idx + 1];
-        output[idx + 2] = data[idx + 2];
-        output[idx + 3] = 255;
-      }
-    }
-  }
-
-  return outputData;
-}
-
-/**
- * 加载图片为 ImageData
- */
-export function loadImage(file: File): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
-
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl); // 释放内存
-      resolve(img);
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl); // 释放内存
-      reject(new Error('Failed to load image'));
-    };
-    img.src = objectUrl;
-  });
-}
-
-/**
- * 从 HTMLImageElement 获取 ImageData
- */
-export function getImageData(img: HTMLImageElement): ImageData {
-  const canvas = document.createElement('canvas');
-  canvas.width = img.width;
-  canvas.height = img.height;
-  const ctx = canvas.getContext('2d')!;
-  ctx.drawImage(img, 0, 0);
-  return ctx.getImageData(0, 0, canvas.width, canvas.height);
-}
-
-/**
- * 缩放 ImageData
- */
-function scaleImageData(source: ImageData, targetWidth: number, targetHeight: number): ImageData {
-  const sourceCanvas = document.createElement('canvas');
-  sourceCanvas.width = source.width;
-  sourceCanvas.height = source.height;
-  const sourceCtx = sourceCanvas.getContext('2d')!;
-  sourceCtx.putImageData(source, 0, 0);
-
-  const targetCanvas = document.createElement('canvas');
-  targetCanvas.width = targetWidth;
-  targetCanvas.height = targetHeight;
-  const targetCtx = targetCanvas.getContext('2d')!;
-  targetCtx.drawImage(sourceCanvas, 0, 0, targetWidth, targetHeight);
-
-  return targetCtx.getImageData(0, 0, targetWidth, targetHeight);
-}
-
-/**
- * 处理图片对
- * 完整的处理流程：加载 -> 提取遮罩 -> 色块叠加 -> 输出
- */
-export async function processImagePair(
-  originalFile: File,
-  annotatedFile: File,
-  options: ProcessingOptions = defaultProcessingOptions
-): Promise<Blob> {
-  // 加载图片
-  const [originalImg, annotatedImg] = await Promise.all([
-    loadImage(originalFile),
-    loadImage(annotatedFile),
-  ]);
-
-  // 获取图片数据
-  const originalData = getImageData(originalImg);
-  const annotatedData = getImageData(annotatedImg);
-
-  // 如果尺寸不同，缩放标注图到原图尺寸
-  let scaledAnnotatedData = annotatedData;
-  if (originalImg.width !== annotatedImg.width || originalImg.height !== annotatedImg.height) {
-    scaledAnnotatedData = scaleImageData(annotatedData, originalData.width, originalData.height);
-  }
-
-  // 提取文字遮罩并应用色块叠加
-  const textMask = extractTextMask(
-    originalData,
-    options.textThreshold,
-    options.maskExpand,
-    options.paddingLeft,
-    options.paddingRight
-  );
-  const resultData = applyColorBlock(
-    originalData,
-    scaledAnnotatedData,
-    textMask,
-    options.blockColor,
-    options.blockOpacity
-  );
-
-  // 转换为 Blob
-  return imageDataToBlob(resultData);
-}
-
-/**
- * 将 ImageData 转换为 Blob
- */
-export function imageDataToBlob(imageData: ImageData, type = 'image/png'): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const canvas = document.createElement('canvas');
-    canvas.width = imageData.width;
-    canvas.height = imageData.height;
-    const ctx = canvas.getContext('2d')!;
-    ctx.putImageData(imageData, 0, 0);
-    canvas.toBlob((blob) => {
-      if (blob) {
-        resolve(blob);
-      } else {
-        reject(new Error('Failed to create blob'));
-      }
-    }, type);
-  });
-}
-
-/**
- * 将 ImageData 转换为 DataURL（用于预览）
- */
-export function imageDataToDataURL(imageData: ImageData): string {
-  const canvas = document.createElement('canvas');
-  canvas.width = imageData.width;
-  canvas.height = imageData.height;
-  const ctx = canvas.getContext('2d')!;
-  ctx.putImageData(imageData, 0, 0);
-  return canvas.toDataURL('image/png');
-}
-
-/**
- * 生成预览数据
- */
-export async function generatePreview(
-  originalFile: File,
-  annotatedFile: File,
-  options: ProcessingOptions = defaultProcessingOptions
-): Promise<{
+type PreviewResult = {
   original: string;
   annotated: string;
   annotationLayer: string;
   annotatedWithBlock: string;
   result: string;
-}> {
-  const [originalImg, annotatedImg] = await Promise.all([
-    loadImage(originalFile),
-    loadImage(annotatedFile),
-  ]);
+};
 
-  const originalData = getImageData(originalImg);
-  const annotatedData = getImageData(annotatedImg);
+// Worker 响应类型
+interface WorkerPreviewResponse {
+  type: 'generatePreview';
+  id: number;
+  result: {
+    original: Blob;
+    annotated: Blob;
+    annotationLayer: Blob;
+    annotatedWithBlock: Blob;
+    result: Blob;
+  };
+}
 
-  let scaledAnnotatedData = annotatedData;
-  if (originalImg.width !== annotatedImg.width || originalImg.height !== annotatedImg.height) {
-    scaledAnnotatedData = scaleImageData(annotatedData, originalData.width, originalData.height);
+interface WorkerProcessResponse {
+  type: 'processImagePair';
+  id: number;
+  result: Blob;
+}
+
+interface WorkerErrorResponse {
+  type: 'error';
+  id: number;
+  error: string;
+}
+
+type WorkerResponse = WorkerPreviewResponse | WorkerProcessResponse | WorkerErrorResponse;
+
+// 检测 Worker + OffscreenCanvas 支持
+const workerSupported = typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined';
+
+// 单例 Worker 实例
+let worker: Worker | null = null;
+let nextId = 0;
+const pending = new Map<number, { resolve: (value: unknown) => void; reject: (reason: unknown) => void }>();
+
+function getWorker(): Worker {
+  if (!worker) {
+    worker = new Worker(
+      new URL('./imageProcessor.worker.ts', import.meta.url),
+      { type: 'module' }
+    );
+    worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
+      const { id } = e.data;
+      const handlers = pending.get(id);
+      if (!handlers) return;
+      pending.delete(id);
+      if (e.data.type === 'error') {
+        handlers.reject(new Error(e.data.error));
+      } else {
+        handlers.resolve(e.data.result);
+      }
+    };
+    worker.onerror = (e) => {
+      // Worker 发生未捕获错误时，拒绝所有 pending 请求
+      const error = new Error(e.message || 'Worker error');
+      for (const [id, handlers] of pending) {
+        handlers.reject(error);
+        pending.delete(id);
+      }
+    };
+  }
+  return worker;
+}
+
+function sendToWorker<T>(message: Record<string, unknown>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const id = nextId++;
+    pending.set(id, {
+      resolve: resolve as (value: unknown) => void,
+      reject,
+    });
+    getWorker().postMessage({ ...message, id });
+  });
+}
+
+// 回退模块缓存
+let fallbackModule: typeof import('./imageProcessorFallback') | null = null;
+
+async function getFallback() {
+  if (!fallbackModule) {
+    fallbackModule = await import('./imageProcessorFallback');
+  }
+  return fallbackModule;
+}
+
+/**
+ * 生成预览数据
+ * Worker 路径返回 Object URL，Fallback 路径返回 DataURL
+ * 两者都可直接用于 <img src>
+ */
+export async function generatePreview(
+  originalFile: File,
+  annotatedFile: File,
+  options: import('./imageProcessorCore').ProcessingOptions
+): Promise<PreviewResult> {
+  if (workerSupported) {
+    const blobs = await sendToWorker<WorkerPreviewResponse['result']>({
+      type: 'generatePreview',
+      originalFile,
+      annotatedFile,
+      options,
+    });
+    return {
+      original: URL.createObjectURL(blobs.original),
+      annotated: URL.createObjectURL(blobs.annotated),
+      annotationLayer: URL.createObjectURL(blobs.annotationLayer),
+      annotatedWithBlock: URL.createObjectURL(blobs.annotatedWithBlock),
+      result: URL.createObjectURL(blobs.result),
+    };
   }
 
-  // 提取文字遮罩
-  const textMask = extractTextMask(
-    originalData,
-    options.textThreshold,
-    options.maskExpand,
-    options.paddingLeft,
-    options.paddingRight
-  );
-  const maskPreview = generateMaskPreview(originalData, textMask);
+  const fallback = await getFallback();
+  return fallback.generatePreviewFallback(originalFile, annotatedFile, options);
+}
 
-  // 生成标注图+色块的中间状态预览
-  const annotatedWithBlockData = applyColorBlockToAnnotated(
-    scaledAnnotatedData,
-    textMask,
-    options.blockColor,
-    options.blockOpacity
-  );
+/**
+ * 处理图片对，返回 Blob
+ */
+export async function processImagePair(
+  originalFile: File,
+  annotatedFile: File,
+  options: import('./imageProcessorCore').ProcessingOptions
+): Promise<Blob> {
+  if (workerSupported) {
+    return sendToWorker<Blob>({
+      type: 'processImagePair',
+      originalFile,
+      annotatedFile,
+      options,
+    });
+  }
 
-  const resultData = applyColorBlock(
-    originalData,
-    scaledAnnotatedData,
-    textMask,
-    options.blockColor,
-    options.blockOpacity
-  );
-
-  return {
-    original: imageDataToDataURL(originalData),
-    annotated: imageDataToDataURL(scaledAnnotatedData),
-    annotationLayer: imageDataToDataURL(maskPreview),
-    annotatedWithBlock: imageDataToDataURL(annotatedWithBlockData),
-    result: imageDataToDataURL(resultData),
-  };
+  const fallback = await getFallback();
+  return fallback.processImagePairFallback(originalFile, annotatedFile, options);
 }
