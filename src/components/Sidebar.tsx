@@ -489,10 +489,38 @@ export function Sidebar({
                 />
               </div>
 
-              <div className="space-y-2" title="分别设置色块条向左/右扩展的像素数">
+              <div className="space-y-2" title="分别设置色块条向上/下/左/右扩展的像素数">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-medium text-slate-600">色块补偿</label>
-                  <div className="flex gap-2 items-center">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-slate-500">上</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="50"
+                        value={options.paddingTop}
+                        onChange={(e) =>
+                          handleOptionChange({ ...options, paddingTop: Number(e.target.value) })
+                        }
+                        className="w-14 px-1.5 py-0.5 text-xs text-slate-700 font-mono border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                      />
+                      <span className="text-xs text-slate-500">px</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-slate-500">下</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="50"
+                        value={options.paddingBottom}
+                        onChange={(e) =>
+                          handleOptionChange({ ...options, paddingBottom: Number(e.target.value) })
+                        }
+                        className="w-14 px-1.5 py-0.5 text-xs text-slate-700 font-mono border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                      />
+                      <span className="text-xs text-slate-500">px</span>
+                    </div>
                     <div className="flex items-center gap-1">
                       <span className="text-xs text-slate-500">左</span>
                       <input
@@ -524,6 +552,28 @@ export function Sidebar({
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="range"
+                    min="0"
+                    max="50"
+                    value={options.paddingTop}
+                    onChange={(e) =>
+                      handleOptionChange({ ...options, paddingTop: Number(e.target.value) })
+                    }
+                    className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                    title="上侧补偿"
+                  />
+                  <input
+                    type="range"
+                    min="0"
+                    max="50"
+                    value={options.paddingBottom}
+                    onChange={(e) =>
+                      handleOptionChange({ ...options, paddingBottom: Number(e.target.value) })
+                    }
+                    className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                    title="下侧补偿"
+                  />
                   <input
                     type="range"
                     min="0"

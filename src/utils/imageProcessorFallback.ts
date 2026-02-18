@@ -129,7 +129,9 @@ export async function generatePreviewFallback(
     options.textThreshold,
     options.maskExpand,
     options.paddingLeft,
-    options.paddingRight
+    options.paddingRight,
+    options.paddingTop,
+    options.paddingBottom
   );
   const maskPreview = generateMaskPreview(originalData, textMask);
 
@@ -183,7 +185,9 @@ export async function processImagePairFallback(
     options.textThreshold,
     options.maskExpand,
     options.paddingLeft,
-    options.paddingRight
+    options.paddingRight,
+    options.paddingTop,
+    options.paddingBottom
   );
   const resultData = applyColorBlock(
     originalData,

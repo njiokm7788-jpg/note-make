@@ -18,6 +18,10 @@ export interface ProcessingOptions {
   paddingLeft: number;
   /** 色块右侧补偿 (像素)，向右扩展色块条边界 */
   paddingRight: number;
+  /** 色块上侧补偿 (像素)，向上扩展色块条边界 */
+  paddingTop: number;
+  /** 色块下侧补偿 (像素)，向下扩展色块条边界 */
+  paddingBottom: number;
 }
 
 export const defaultProcessingOptions: ProcessingOptions = {
@@ -27,6 +31,8 @@ export const defaultProcessingOptions: ProcessingOptions = {
   blockOpacity: 0.3,
   paddingLeft: 0,
   paddingRight: 0,
+  paddingTop: 0,
+  paddingBottom: 0,
 };
 
 /**
@@ -72,7 +78,9 @@ export function extractTextMask(
   textThreshold: number,
   expandRadius: number,
   paddingLeft: number = 0,
-  paddingRight: number = 0
+  paddingRight: number = 0,
+  paddingTop: number = 0,
+  paddingBottom: number = 0
 ): boolean[] {
   const { width, height, data } = imageData;
   const mask = new Array<boolean>(width * height).fill(false);
@@ -104,7 +112,8 @@ export function extractTextMask(
   }
 
   // 第三步：行级别水平合并（同一行内的文字区域合并为色块条）+ 左右补偿
-  const mergedMask = new Array<boolean>(width * height).fill(false);
+  // 先记录每一行的水平范围，再统一应用上下补偿，避免重复扫描整行像素
+  const rowRanges = new Array<{ minX: number; maxX: number } | null>(height).fill(null);
 
   for (let y = 0; y < height; y++) {
     let minX = -1;
@@ -120,12 +129,27 @@ export function extractTextMask(
       }
     }
 
-    // 填充该行从 minX 到 maxX 的所有像素，并应用左右补偿
     if (minX !== -1 && maxX !== -1) {
-      const paddedMinX = Math.max(0, minX - paddingLeft);
-      const paddedMaxX = Math.min(width - 1, maxX + paddingRight);
-      for (let x = paddedMinX; x <= paddedMaxX; x++) {
-        mergedMask[y * width + x] = true;
+      rowRanges[y] = {
+        minX: Math.max(0, minX - paddingLeft),
+        maxX: Math.min(width - 1, maxX + paddingRight),
+      };
+    }
+  }
+
+  // 第四步：应用上下补偿，扩展色块条高度
+  const mergedMask = new Array<boolean>(width * height).fill(false);
+
+  for (let y = 0; y < height; y++) {
+    const rowRange = rowRanges[y];
+    if (!rowRange) continue;
+
+    const startY = Math.max(0, y - paddingTop);
+    const endY = Math.min(height - 1, y + paddingBottom);
+
+    for (let targetY = startY; targetY <= endY; targetY++) {
+      for (let x = rowRange.minX; x <= rowRange.maxX; x++) {
+        mergedMask[targetY * width + x] = true;
       }
     }
   }

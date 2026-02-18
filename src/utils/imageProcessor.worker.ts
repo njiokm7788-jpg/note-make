@@ -94,9 +94,26 @@ async function handleGeneratePreview(req: GeneratePreviewRequest): Promise<void>
     scaledAnnotatedData = scaleImageData(annotatedData, originalData.width, originalData.height);
   }
 
-  const { textThreshold, maskExpand, paddingLeft, paddingRight, blockColor, blockOpacity } = req.options;
+  const {
+    textThreshold,
+    maskExpand,
+    paddingLeft,
+    paddingRight,
+    paddingTop,
+    paddingBottom,
+    blockColor,
+    blockOpacity,
+  } = req.options;
 
-  const textMask = extractTextMask(originalData, textThreshold, maskExpand, paddingLeft, paddingRight);
+  const textMask = extractTextMask(
+    originalData,
+    textThreshold,
+    maskExpand,
+    paddingLeft,
+    paddingRight,
+    paddingTop,
+    paddingBottom
+  );
   const maskPreview = generateMaskPreview(originalData, textMask);
   const annotatedWithBlockData = applyColorBlockToAnnotated(scaledAnnotatedData, textMask, blockColor, blockOpacity);
   const resultData = applyColorBlock(originalData, scaledAnnotatedData, textMask, blockColor, blockOpacity);
@@ -143,9 +160,26 @@ async function handleProcessImagePair(req: ProcessImagePairRequest): Promise<voi
     scaledAnnotatedData = scaleImageData(annotatedData, originalData.width, originalData.height);
   }
 
-  const { textThreshold, maskExpand, paddingLeft, paddingRight, blockColor, blockOpacity } = req.options;
+  const {
+    textThreshold,
+    maskExpand,
+    paddingLeft,
+    paddingRight,
+    paddingTop,
+    paddingBottom,
+    blockColor,
+    blockOpacity,
+  } = req.options;
 
-  const textMask = extractTextMask(originalData, textThreshold, maskExpand, paddingLeft, paddingRight);
+  const textMask = extractTextMask(
+    originalData,
+    textThreshold,
+    maskExpand,
+    paddingLeft,
+    paddingRight,
+    paddingTop,
+    paddingBottom
+  );
   const resultData = applyColorBlock(originalData, scaledAnnotatedData, textMask, blockColor, blockOpacity);
   const resultBlob = await imageDataToBlob(resultData);
 

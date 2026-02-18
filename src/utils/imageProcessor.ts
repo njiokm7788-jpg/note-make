@@ -4,9 +4,14 @@
  * 不支持时回退到主线程同步实现
  */
 
+import {
+  defaultProcessingOptions,
+  type ProcessingOptions,
+} from './imageProcessorCore';
+
 // 重新导出核心类型和常量
-export { defaultProcessingOptions } from './imageProcessorCore';
-export type { ProcessingOptions } from './imageProcessorCore';
+export { defaultProcessingOptions };
+export type { ProcessingOptions };
 
 /**
  * 预设方案接口
@@ -15,7 +20,7 @@ export interface Preset {
   id: string;
   name: string;
   description: string;
-  options: import('./imageProcessorCore').ProcessingOptions;
+  options: ProcessingOptions;
 }
 
 /**
@@ -33,6 +38,8 @@ export const defaultPresets: Preset[] = [
       blockOpacity: 0.3,
       paddingLeft: 0,
       paddingRight: 0,
+      paddingTop: 0,
+      paddingBottom: 0,
     }
   },
   {
@@ -46,6 +53,8 @@ export const defaultPresets: Preset[] = [
       blockOpacity: 0.35,
       paddingLeft: 0,
       paddingRight: 0,
+      paddingTop: 0,
+      paddingBottom: 0,
     }
   },
   {
@@ -59,6 +68,8 @@ export const defaultPresets: Preset[] = [
       blockOpacity: 0.35,
       paddingLeft: 0,
       paddingRight: 0,
+      paddingTop: 0,
+      paddingBottom: 0,
     }
   },
   {
@@ -72,6 +83,8 @@ export const defaultPresets: Preset[] = [
       blockOpacity: 0.3,
       paddingLeft: 0,
       paddingRight: 0,
+      paddingTop: 0,
+      paddingBottom: 0,
     }
   }
 ];
@@ -82,14 +95,52 @@ export const presets = defaultPresets;
 const USER_PRESETS_KEY = 'note-image-overlay.userPresets';
 const MAX_PRESETS = 4;
 
+function normalizeOptions(options: Partial<ProcessingOptions> | undefined): ProcessingOptions {
+  return {
+    textThreshold: typeof options?.textThreshold === 'number' ? options.textThreshold : defaultProcessingOptions.textThreshold,
+    maskExpand: typeof options?.maskExpand === 'number' ? options.maskExpand : defaultProcessingOptions.maskExpand,
+    blockColor: typeof options?.blockColor === 'string' ? options.blockColor : defaultProcessingOptions.blockColor,
+    blockOpacity: typeof options?.blockOpacity === 'number' ? options.blockOpacity : defaultProcessingOptions.blockOpacity,
+    paddingLeft: typeof options?.paddingLeft === 'number' ? options.paddingLeft : defaultProcessingOptions.paddingLeft,
+    paddingRight: typeof options?.paddingRight === 'number' ? options.paddingRight : defaultProcessingOptions.paddingRight,
+    paddingTop: typeof options?.paddingTop === 'number' ? options.paddingTop : defaultProcessingOptions.paddingTop,
+    paddingBottom: typeof options?.paddingBottom === 'number' ? options.paddingBottom : defaultProcessingOptions.paddingBottom,
+  };
+}
+
+function normalizePreset(preset: Partial<Preset>): Preset | null {
+  if (typeof preset.id !== 'string' || typeof preset.name !== 'string') {
+    return null;
+  }
+  return {
+    id: preset.id,
+    name: preset.name,
+    description: typeof preset.description === 'string' ? preset.description : '自定义预设',
+    options: normalizeOptions(preset.options),
+  };
+}
+
 export function loadUserPresets(): Preset[] {
   try {
     const saved = localStorage.getItem(USER_PRESETS_KEY);
     if (saved) {
-      return JSON.parse(saved) as Preset[];
+      const parsed = JSON.parse(saved) as unknown;
+      if (Array.isArray(parsed)) {
+        const normalized = parsed
+          .map((item) => normalizePreset(item as Partial<Preset>))
+          .filter((item): item is Preset => item !== null)
+          .slice(0, MAX_PRESETS);
+
+        if (normalized.length > 0) {
+          return normalized;
+        }
+      }
     }
   } catch { /* ignore */ }
-  return [...defaultPresets];
+  return defaultPresets.map((preset) => ({
+    ...preset,
+    options: normalizeOptions(preset.options),
+  }));
 }
 
 export function saveUserPresets(presets: Preset[]): void {
@@ -98,7 +149,7 @@ export function saveUserPresets(presets: Preset[]): void {
   } catch { /* ignore */ }
 }
 
-export function addUserPreset(name: string, options: import('./imageProcessorCore').ProcessingOptions, existing: Preset[]): Preset[] {
+export function addUserPreset(name: string, options: ProcessingOptions, existing: Preset[]): Preset[] {
   if (existing.length >= MAX_PRESETS) {
     return existing;
   }
@@ -106,7 +157,7 @@ export function addUserPreset(name: string, options: import('./imageProcessorCor
     id: `preset-${Date.now()}`,
     name,
     description: '自定义预设',
-    options,
+    options: normalizeOptions(options),
   };
   const updated = [...existing, newPreset];
   saveUserPresets(updated);
@@ -119,8 +170,8 @@ export function removeUserPreset(id: string, existing: Preset[]): Preset[] {
   return updated;
 }
 
-export function updateUserPreset(id: string, options: import('./imageProcessorCore').ProcessingOptions, existing: Preset[]): Preset[] {
-  const updated = existing.map(p => p.id === id ? { ...p, options } : p);
+export function updateUserPreset(id: string, options: ProcessingOptions, existing: Preset[]): Preset[] {
+  const updated = existing.map((p) => (p.id === id ? { ...p, options: normalizeOptions(options) } : p));
   saveUserPresets(updated);
   return updated;
 }
@@ -234,7 +285,7 @@ async function getFallback() {
 export async function generatePreview(
   originalFile: File,
   annotatedFile: File,
-  options: import('./imageProcessorCore').ProcessingOptions
+  options: ProcessingOptions
 ): Promise<PreviewResult> {
   if (workerSupported) {
     const blobs = await sendToWorker<WorkerPreviewResponse['result']>({
@@ -262,7 +313,7 @@ export async function generatePreview(
 export async function processImagePair(
   originalFile: File,
   annotatedFile: File,
-  options: import('./imageProcessorCore').ProcessingOptions
+  options: ProcessingOptions
 ): Promise<Blob> {
   if (workerSupported) {
     return sendToWorker<Blob>({

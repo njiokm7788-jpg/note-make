@@ -200,6 +200,62 @@ export function ProcessingPanel({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-medium text-slate-600">
+                  色块上侧补偿
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="50"
+                  value={options.paddingTop}
+                  onChange={(e) =>
+                    handleOptionChange({ ...options, paddingTop: Number(e.target.value) })
+                  }
+                  className="w-16 px-2 py-0.5 text-xs text-slate-700 font-mono border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="50"
+                value={options.paddingTop}
+                onChange={(e) =>
+                  handleOptionChange({ ...options, paddingTop: Number(e.target.value) })
+                }
+                className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-slate-600">
+                  色块下侧补偿
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="50"
+                  value={options.paddingBottom}
+                  onChange={(e) =>
+                    handleOptionChange({ ...options, paddingBottom: Number(e.target.value) })
+                  }
+                  className="w-16 px-2 py-0.5 text-xs text-slate-700 font-mono border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="50"
+                value={options.paddingBottom}
+                onChange={(e) =>
+                  handleOptionChange({ ...options, paddingBottom: Number(e.target.value) })
+                }
+                className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-slate-600">
                   色块左侧补偿
                 </label>
                 <input
