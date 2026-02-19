@@ -11,6 +11,7 @@ import {
   generateMaskPreview,
 } from './imageProcessorCore';
 import { canvasPool } from './canvasPool';
+import { computeAlignLayout, parseHexColorToRgb } from './annotatedAlign';
 
 // Worker 消息类型
 interface GeneratePreviewRequest {
@@ -62,6 +63,56 @@ function scaleImageData(source: ImageData, targetWidth: number, targetHeight: nu
   return result;
 }
 
+function alignAnnotatedData(
+  source: ImageData,
+  targetWidth: number,
+  targetHeight: number,
+  alignMode: 'stretch' | 'fitWidthPadHeight',
+  compensationFillColor: string
+): ImageData {
+  if (alignMode === 'stretch') {
+    return scaleImageData(source, targetWidth, targetHeight);
+  }
+
+  const layout = computeAlignLayout({
+    originalWidth: targetWidth,
+    originalHeight: targetHeight,
+    annotatedWidth: source.width,
+    annotatedHeight: source.height,
+    alignMode,
+  });
+
+  const sourceCanvas = canvasPool.acquire(source.width, source.height);
+  const sourceCtx = sourceCanvas.getContext('2d')!;
+  sourceCtx.putImageData(source, 0, 0);
+
+  const targetCanvas = canvasPool.acquire(targetWidth, targetHeight);
+  const targetCtx = targetCanvas.getContext('2d')!;
+  targetCtx.imageSmoothingQuality = 'high';
+
+  const fill = parseHexColorToRgb(compensationFillColor);
+  targetCtx.fillStyle = `rgb(${fill.r}, ${fill.g}, ${fill.b})`;
+  targetCtx.fillRect(0, 0, targetWidth, targetHeight);
+
+  // drawHeight > targetHeight 时会自动发生顶部对齐裁剪（下方超出被裁掉）
+  targetCtx.drawImage(
+    sourceCanvas,
+    0,
+    0,
+    source.width,
+    source.height,
+    layout.offsetX,
+    layout.offsetY,
+    layout.drawWidth,
+    layout.drawHeight
+  );
+
+  const aligned = targetCtx.getImageData(0, 0, targetWidth, targetHeight);
+  canvasPool.release(sourceCanvas);
+  canvasPool.release(targetCanvas);
+  return aligned;
+}
+
 /**
  * 将 ImageData 转换为 Blob（使用池化 OffscreenCanvas）
  */
@@ -89,10 +140,13 @@ async function handleGeneratePreview(req: GeneratePreviewRequest): Promise<void>
   originalBitmap.close();
   annotatedBitmap.close();
 
-  let scaledAnnotatedData = annotatedData;
-  if (originalData.width !== annotatedData.width || originalData.height !== annotatedData.height) {
-    scaledAnnotatedData = scaleImageData(annotatedData, originalData.width, originalData.height);
-  }
+  const scaledAnnotatedData = alignAnnotatedData(
+    annotatedData,
+    originalData.width,
+    originalData.height,
+    req.options.alignMode,
+    req.options.compensationFillColor
+  );
 
   const {
     textThreshold,
@@ -155,10 +209,13 @@ async function handleProcessImagePair(req: ProcessImagePairRequest): Promise<voi
   originalBitmap.close();
   annotatedBitmap.close();
 
-  let scaledAnnotatedData = annotatedData;
-  if (originalData.width !== annotatedData.width || originalData.height !== annotatedData.height) {
-    scaledAnnotatedData = scaleImageData(annotatedData, originalData.width, originalData.height);
-  }
+  const scaledAnnotatedData = alignAnnotatedData(
+    annotatedData,
+    originalData.width,
+    originalData.height,
+    req.options.alignMode,
+    req.options.compensationFillColor
+  );
 
   const {
     textThreshold,

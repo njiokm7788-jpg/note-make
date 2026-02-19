@@ -40,6 +40,8 @@ export const defaultPresets: Preset[] = [
       paddingRight: 0,
       paddingTop: 0,
       paddingBottom: 0,
+      alignMode: 'stretch',
+      compensationFillColor: '#FFFFFF',
     }
   },
   {
@@ -55,6 +57,8 @@ export const defaultPresets: Preset[] = [
       paddingRight: 0,
       paddingTop: 0,
       paddingBottom: 0,
+      alignMode: 'stretch',
+      compensationFillColor: '#FFFFFF',
     }
   },
   {
@@ -70,6 +74,8 @@ export const defaultPresets: Preset[] = [
       paddingRight: 0,
       paddingTop: 0,
       paddingBottom: 0,
+      alignMode: 'stretch',
+      compensationFillColor: '#FFFFFF',
     }
   },
   {
@@ -85,6 +91,8 @@ export const defaultPresets: Preset[] = [
       paddingRight: 0,
       paddingTop: 0,
       paddingBottom: 0,
+      alignMode: 'stretch',
+      compensationFillColor: '#FFFFFF',
     }
   }
 ];
@@ -105,6 +113,8 @@ function normalizeOptions(options: Partial<ProcessingOptions> | undefined): Proc
     paddingRight: typeof options?.paddingRight === 'number' ? options.paddingRight : defaultProcessingOptions.paddingRight,
     paddingTop: typeof options?.paddingTop === 'number' ? options.paddingTop : defaultProcessingOptions.paddingTop,
     paddingBottom: typeof options?.paddingBottom === 'number' ? options.paddingBottom : defaultProcessingOptions.paddingBottom,
+    alignMode: options?.alignMode === 'fitWidthPadHeight' ? 'fitWidthPadHeight' : defaultProcessingOptions.alignMode,
+    compensationFillColor: typeof options?.compensationFillColor === 'string' ? options.compensationFillColor : defaultProcessingOptions.compensationFillColor,
   };
 }
 

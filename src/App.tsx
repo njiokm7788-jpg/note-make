@@ -25,6 +25,7 @@ type ScreenSize = 'mobile' | 'tablet' | 'desktop';
 const STORAGE_KEYS = {
   sidebarCollapsed: 'note-image-overlay.sidebarCollapsed',
   selectedPreset: 'note-image-overlay.selectedPreset',
+  alignMode: 'note-image-overlay.alignMode',
 } as const;
 
 // Hook for responsive screen size detection
@@ -90,6 +91,18 @@ function readPersistedPreset(): string | null | undefined {
   }
 }
 
+function readPersistedAlignMode(): ProcessingOptions['alignMode'] | undefined {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.alignMode);
+    if (raw === null) return undefined;
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed === 'stretch' || parsed === 'fitWidthPadHeight') return parsed;
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 // 防抖 Hook
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -129,22 +142,35 @@ function App() {
     options: ProcessingOptions;
   }>(() => {
     const persisted = readPersistedPreset();
+    const persistedAlignMode = readPersistedAlignMode();
     const loadedPresets = loadUserPresets();
 
     if (persisted === null) {
-      return { selectedPreset: null, options: loadedPresets[0]?.options ?? presets[0].options };
+      const baseOptions = loadedPresets[0]?.options ?? presets[0].options;
+      return {
+        selectedPreset: null,
+        options: persistedAlignMode ? { ...baseOptions, alignMode: persistedAlignMode } : baseOptions
+      };
     }
 
     if (typeof persisted === 'string') {
       const preset = loadedPresets.find((candidate) => candidate.id === persisted);
       if (preset) {
-        return { selectedPreset: preset.id, options: preset.options };
+        const baseOptions = preset.options;
+        return {
+          selectedPreset: preset.id,
+          options: persistedAlignMode ? { ...baseOptions, alignMode: persistedAlignMode } : baseOptions
+        };
       }
     }
 
     const defaultPresetId = 'highlight-yellow';
     const defaultPreset = loadedPresets.find((preset) => preset.id === defaultPresetId) ?? loadedPresets[0];
-    return { selectedPreset: defaultPreset?.id ?? null, options: defaultPreset?.options ?? presets[0].options };
+    const baseOptions = defaultPreset?.options ?? presets[0].options;
+    return {
+      selectedPreset: defaultPreset?.id ?? null,
+      options: persistedAlignMode ? { ...baseOptions, alignMode: persistedAlignMode } : baseOptions
+    };
   });
 
   const [selectedPreset, setSelectedPreset] = useState<string | null>(initialPresetState.selectedPreset);
@@ -332,6 +358,14 @@ function App() {
       return;
     }
   }, [selectedPreset]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.alignMode, JSON.stringify(options.alignMode));
+    } catch {
+      return;
+    }
+  }, [options.alignMode]);
   
   // 实时预览开关
   const [autoPreview, setAutoPreview] = useState(true);

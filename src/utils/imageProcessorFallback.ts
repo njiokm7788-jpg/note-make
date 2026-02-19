@@ -12,6 +12,7 @@ import {
   applyColorBlockToAnnotated,
   generateMaskPreview,
 } from './imageProcessorCore';
+import { computeAlignLayout, parseHexColorToRgb } from './annotatedAlign';
 
 /**
  * 加载图片为 HTMLImageElement
@@ -61,6 +62,57 @@ function scaleImageData(source: ImageData, targetWidth: number, targetHeight: nu
   const targetCtx = targetCanvas.getContext('2d')!;
   targetCtx.imageSmoothingQuality = 'high';
   targetCtx.drawImage(sourceCanvas, 0, 0, targetWidth, targetHeight);
+
+  return targetCtx.getImageData(0, 0, targetWidth, targetHeight);
+}
+
+function alignAnnotatedData(
+  source: ImageData,
+  targetWidth: number,
+  targetHeight: number,
+  alignMode: 'stretch' | 'fitWidthPadHeight',
+  compensationFillColor: string
+): ImageData {
+  if (alignMode === 'stretch') {
+    return scaleImageData(source, targetWidth, targetHeight);
+  }
+
+  const layout = computeAlignLayout({
+    originalWidth: targetWidth,
+    originalHeight: targetHeight,
+    annotatedWidth: source.width,
+    annotatedHeight: source.height,
+    alignMode,
+  });
+
+  const sourceCanvas = document.createElement('canvas');
+  sourceCanvas.width = source.width;
+  sourceCanvas.height = source.height;
+  const sourceCtx = sourceCanvas.getContext('2d')!;
+  sourceCtx.putImageData(source, 0, 0);
+
+  const targetCanvas = document.createElement('canvas');
+  targetCanvas.width = targetWidth;
+  targetCanvas.height = targetHeight;
+  const targetCtx = targetCanvas.getContext('2d')!;
+  targetCtx.imageSmoothingQuality = 'high';
+
+  const fill = parseHexColorToRgb(compensationFillColor);
+  targetCtx.fillStyle = `rgb(${fill.r}, ${fill.g}, ${fill.b})`;
+  targetCtx.fillRect(0, 0, targetWidth, targetHeight);
+
+  // drawHeight > targetHeight 时会自动发生顶部对齐裁剪（下方超出被裁掉）
+  targetCtx.drawImage(
+    sourceCanvas,
+    0,
+    0,
+    source.width,
+    source.height,
+    layout.offsetX,
+    layout.offsetY,
+    layout.drawWidth,
+    layout.drawHeight
+  );
 
   return targetCtx.getImageData(0, 0, targetWidth, targetHeight);
 }
@@ -119,10 +171,13 @@ export async function generatePreviewFallback(
   const originalData = getImageData(originalImg);
   const annotatedData = getImageData(annotatedImg);
 
-  let scaledAnnotatedData = annotatedData;
-  if (originalImg.width !== annotatedImg.width || originalImg.height !== annotatedImg.height) {
-    scaledAnnotatedData = scaleImageData(annotatedData, originalData.width, originalData.height);
-  }
+  const scaledAnnotatedData = alignAnnotatedData(
+    annotatedData,
+    originalData.width,
+    originalData.height,
+    options.alignMode,
+    options.compensationFillColor
+  );
 
   const textMask = extractTextMask(
     originalData,
@@ -175,10 +230,13 @@ export async function processImagePairFallback(
   const originalData = getImageData(originalImg);
   const annotatedData = getImageData(annotatedImg);
 
-  let scaledAnnotatedData = annotatedData;
-  if (originalImg.width !== annotatedImg.width || originalImg.height !== annotatedImg.height) {
-    scaledAnnotatedData = scaleImageData(annotatedData, originalData.width, originalData.height);
-  }
+  const scaledAnnotatedData = alignAnnotatedData(
+    annotatedData,
+    originalData.width,
+    originalData.height,
+    options.alignMode,
+    options.compensationFillColor
+  );
 
   const textMask = extractTextMask(
     originalData,

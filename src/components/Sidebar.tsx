@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { type ProcessingOptions, type Preset } from '../utils/imageProcessor';
+import { ReferenceColorPickerModal } from './ReferenceColorPickerModal';
 
 interface SidebarProps {
   options: ProcessingOptions;
@@ -74,6 +75,7 @@ export function Sidebar({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [newPresetName, setNewPresetName] = useState('');
+  const [isReferencePickerOpen, setIsReferencePickerOpen] = useState(false);
 
   const canAddPreset = userPresets.length < 4;
 
@@ -150,22 +152,34 @@ export function Sidebar({
     ? 'fixed left-4 top-[120px] z-40 shadow-xl'
     : '';
 
+  const referenceColorPickerModal = (
+    <ReferenceColorPickerModal
+      isOpen={isReferencePickerOpen}
+      onClose={() => setIsReferencePickerOpen(false)}
+      currentColor={options.compensationFillColor}
+      onPickColor={(color) => {
+        handleOptionChange({ ...options, compensationFillColor: color });
+      }}
+    />
+  );
+
   if (collapsed) {
     return (
-      <aside
-        className={`
-          shrink-0 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden
-          ${widthClass} transition-all duration-[250ms] ease-out
-          ${overlayStyles}
-        `}
-        aria-label="处理设置侧边栏"
-      >
-        <div className="flex flex-col items-center p-1.5 gap-1">
-          <IconButton title="展开设置 (Ctrl+B)" onClick={handleToggleCollapsed}>
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </IconButton>
+      <>
+        <aside
+          className={`
+            shrink-0 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden
+            ${widthClass} transition-all duration-[250ms] ease-out
+            ${overlayStyles}
+          `}
+          aria-label="处理设置侧边栏"
+        >
+          <div className="flex flex-col items-center p-1.5 gap-1">
+            <IconButton title="展开设置 (Ctrl+B)" onClick={handleToggleCollapsed}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </IconButton>
 
           <div className="w-8 h-px bg-slate-200 my-1" />
 
@@ -250,26 +264,29 @@ export function Sidebar({
             </IconButton>
           )}
 
-          <IconButton title="下载结果" onClick={onDownload} disabled={!canDownload}>
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-          </IconButton>
-        </div>
-      </aside>
+            <IconButton title="下载结果" onClick={onDownload} disabled={!canDownload}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            </IconButton>
+          </div>
+        </aside>
+        {referenceColorPickerModal}
+      </>
     );
   }
 
   return (
-    <aside
-      className={`
-        shrink-0 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden
-        ${widthClass} transition-all duration-[250ms] ease-out
-        ${overlayStyles}
-      `}
-      aria-label="处理设置侧边栏"
-    >
-      <div className="p-3">
+    <>
+      <aside
+        className={`
+          shrink-0 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden
+          ${widthClass} transition-all duration-[250ms] ease-out
+          ${overlayStyles}
+        `}
+        aria-label="处理设置侧边栏"
+      >
+        <div className="p-3">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-semibold text-slate-800">处理设置</h2>
           <div className="flex items-center gap-2">
@@ -432,6 +449,65 @@ export function Sidebar({
                 </svg>
                 {selectedPreset ? '遮罩参数 (修改自动保存)' : '遮罩参数'}
               </h3>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-slate-600">标注图对齐模式</label>
+                  <select
+                    value={options.alignMode}
+                    onChange={(e) =>
+                      handleOptionChange({
+                        ...options,
+                        alignMode: e.target.value as ProcessingOptions['alignMode'],
+                      })
+                    }
+                    className="w-40 px-2 py-1 text-xs text-slate-700 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                  >
+                    <option value="stretch">拉伸匹配（旧）</option>
+                    <option value="fitWidthPadHeight">宽等比 + 高向补偿</option>
+                  </select>
+                </div>
+                <p className="text-xs text-purple-600">
+                  新模式会先按宽等比缩放；高度不足上下平分补偿，高度超出按顶部对齐裁剪。
+                </p>
+              </div>
+
+              {options.alignMode === 'fitWidthPadHeight' && (
+                <div className="space-y-2 p-2 bg-white/70 rounded-lg border border-purple-200">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-slate-600">补偿区颜色</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={options.compensationFillColor}
+                        onChange={(e) =>
+                          handleOptionChange({ ...options, compensationFillColor: e.target.value })
+                        }
+                        className="w-6 h-6 rounded cursor-pointer border border-slate-300"
+                      />
+                      <input
+                        type="text"
+                        value={options.compensationFillColor}
+                        onChange={(e) =>
+                          handleOptionChange({ ...options, compensationFillColor: e.target.value })
+                        }
+                        className="w-24 px-2 py-1 text-xs font-mono text-slate-700 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-purple-600">上传参考图取色已迁移到独立弹窗</p>
+                    <button
+                      type="button"
+                      onClick={() => setIsReferencePickerOpen(true)}
+                      className="px-2 py-1 text-xs font-medium text-slate-700 bg-slate-100 rounded border border-slate-300 hover:bg-slate-200"
+                    >
+                      打开取色弹窗
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2" title="亮度低于此值的像素被识别为文字，值越高识别的文字区域越多">
                 <div className="flex items-center justify-between">
@@ -751,7 +827,9 @@ export function Sidebar({
             </button>
           </div>
         </div>
-      </div>
-    </aside>
+        </div>
+      </aside>
+      {referenceColorPickerModal}
+    </>
   );
 }

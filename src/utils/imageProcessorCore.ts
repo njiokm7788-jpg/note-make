@@ -4,6 +4,7 @@
  */
 
 import { euclideanDistanceTransform } from "./distanceTransform";
+import type { AlignMode } from "./annotatedAlign";
 
 export interface ProcessingOptions {
   /** 文字检测亮度阈值 (0-255)，低于此值的像素被视为文字 */
@@ -22,6 +23,10 @@ export interface ProcessingOptions {
   paddingTop: number;
   /** 色块下侧补偿 (像素)，向下扩展色块条边界 */
   paddingBottom: number;
+  /** 标注图对齐模式 */
+  alignMode: AlignMode;
+  /** 宽等比模式下的上下补偿填充色 */
+  compensationFillColor: string;
 }
 
 export const defaultProcessingOptions: ProcessingOptions = {
@@ -33,6 +38,8 @@ export const defaultProcessingOptions: ProcessingOptions = {
   paddingRight: 0,
   paddingTop: 0,
   paddingBottom: 0,
+  alignMode: "stretch",
+  compensationFillColor: "#FFFFFF",
 };
 
 /**
