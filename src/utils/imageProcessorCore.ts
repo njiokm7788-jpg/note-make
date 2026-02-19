@@ -3,7 +3,7 @@
  * 不依赖 DOM，可在 Web Worker 中运行
  */
 
-import { euclideanDistanceTransform } from './distanceTransform';
+import { euclideanDistanceTransform } from "./distanceTransform";
 
 export interface ProcessingOptions {
   /** 文字检测亮度阈值 (0-255)，低于此值的像素被视为文字 */
@@ -27,7 +27,7 @@ export interface ProcessingOptions {
 export const defaultProcessingOptions: ProcessingOptions = {
   textThreshold: 200,
   maskExpand: 2,
-  blockColor: '#FFFF00',
+  blockColor: "#FFFF00",
   blockOpacity: 0.3,
   paddingLeft: 0,
   paddingRight: 0,
@@ -40,7 +40,7 @@ export const defaultProcessingOptions: ProcessingOptions = {
  * 支持 HEX 格式: #RGB, #RRGGBB
  */
 export function parseColor(color: string): { r: number; g: number; b: number } {
-  const hex = color.replace('#', '');
+  const hex = color.replace("#", "");
 
   if (/^[0-9a-fA-F]{3}$/.test(hex)) {
     return {
@@ -80,8 +80,11 @@ export function extractTextMask(
   paddingLeft: number = 0,
   paddingRight: number = 0,
   paddingTop: number = 0,
-  paddingBottom: number = 0
+  paddingBottom: number = 0,
 ): boolean[] {
+  // 同一行内，两个文字段之间允许连接的最大空白像素数；超过则断开为独立色块段
+  const MAX_HORIZONTAL_GAP_PX = 100;
+
   const { width, height, data } = imageData;
   const mask = new Array<boolean>(width * height).fill(false);
 
@@ -111,45 +114,80 @@ export function extractTextMask(
     currentMask = expandedMask;
   }
 
-  // 第三步：行级别水平合并（同一行内的文字区域合并为色块条）+ 左右补偿
-  // 先记录每一行的水平范围，再统一应用上下补偿，避免重复扫描整行像素
-  const rowRanges = new Array<{ minX: number; maxX: number } | null>(height).fill(null);
+  // 第三步：行级别分段合并（仅连接小间隙，避免跨越大空白）+ 左右补偿
+  // 先记录每一行的多个水平区间，再统一应用上下补偿，避免重复扫描整行像素
+  const rowSegments = new Array<Array<{ startX: number; endX: number }>>(
+    height,
+  );
 
   for (let y = 0; y < height; y++) {
-    let minX = -1;
-    let maxX = -1;
-
-    // 找到该行的最左和最右文字像素
+    const rawSegments: Array<{ startX: number; endX: number }> = [];
+    let segmentStart = -1;
+    let lastTextX = -1;
     for (let x = 0; x < width; x++) {
       if (currentMask[y * width + x]) {
-        if (minX === -1) {
-          minX = x;
+        if (segmentStart === -1) {
+          segmentStart = x;
+          lastTextX = x;
+          continue;
         }
-        maxX = x;
+
+        // 遇到大空白则断开段
+        if (x - lastTextX - 1 > MAX_HORIZONTAL_GAP_PX) {
+          rawSegments.push({
+            startX: Math.max(0, segmentStart - paddingLeft),
+            endX: Math.min(width - 1, lastTextX + paddingRight),
+          });
+          segmentStart = x;
+        }
+        lastTextX = x;
       }
     }
 
-    if (minX !== -1 && maxX !== -1) {
-      rowRanges[y] = {
-        minX: Math.max(0, minX - paddingLeft),
-        maxX: Math.min(width - 1, maxX + paddingRight),
-      };
+    if (segmentStart !== -1) {
+      rawSegments.push({
+        startX: Math.max(0, segmentStart - paddingLeft),
+        endX: Math.min(width - 1, lastTextX + paddingRight),
+      });
     }
+
+    if (rawSegments.length === 0) {
+      rowSegments[y] = [];
+      continue;
+    }
+
+    // 左右补偿后可能相邻/重叠，做一次区间合并
+    const mergedSegments: Array<{ startX: number; endX: number }> = [
+      rawSegments[0],
+    ];
+    for (let i = 1; i < rawSegments.length; i++) {
+      const current = rawSegments[i];
+      const previous = mergedSegments[mergedSegments.length - 1];
+      if (current.startX <= previous.endX + 1) {
+        previous.endX = Math.max(previous.endX, current.endX);
+      } else {
+        mergedSegments.push(current);
+      }
+    }
+
+    rowSegments[y] = mergedSegments;
   }
 
   // 第四步：应用上下补偿，扩展色块条高度
   const mergedMask = new Array<boolean>(width * height).fill(false);
 
   for (let y = 0; y < height; y++) {
-    const rowRange = rowRanges[y];
-    if (!rowRange) continue;
+    const segments = rowSegments[y];
+    if (segments.length === 0) continue;
 
     const startY = Math.max(0, y - paddingTop);
     const endY = Math.min(height - 1, y + paddingBottom);
 
     for (let targetY = startY; targetY <= endY; targetY++) {
-      for (let x = rowRange.minX; x <= rowRange.maxX; x++) {
-        mergedMask[targetY * width + x] = true;
+      for (const segment of segments) {
+        for (let x = segment.startX; x <= segment.endX; x++) {
+          mergedMask[targetY * width + x] = true;
+        }
       }
     }
   }
@@ -172,7 +210,7 @@ export function applyColorBlock(
   annotatedData: ImageData,
   textMask: boolean[],
   blockColor: string,
-  blockOpacity: number
+  blockOpacity: number,
 ): ImageData {
   const { width, height } = annotatedData;
   const outputData = new ImageData(width, height);
@@ -225,7 +263,7 @@ export function applyColorBlockToAnnotated(
   annotatedData: ImageData,
   textMask: boolean[],
   blockColor: string,
-  blockOpacity: number
+  blockOpacity: number,
 ): ImageData {
   const { width, height } = annotatedData;
   const outputData = new ImageData(width, height);
@@ -268,7 +306,7 @@ export function applyColorBlockToAnnotated(
  */
 export function generateMaskPreview(
   originalData: ImageData,
-  textMask: boolean[]
+  textMask: boolean[],
 ): ImageData {
   const { width, height, data } = originalData;
   const outputData = new ImageData(width, height);
