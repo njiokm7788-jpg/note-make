@@ -65,6 +65,12 @@ function UploadDropZone({
   inputId: string;
 }) {
   const [isDragging, setIsDragging] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const isFileDragEvent = useCallback((e: DragEvent<HTMLDivElement>) => {
+    return Array.from(e.dataTransfer.types).includes('Files');
+  }, []);
 
   const handleFiles = useCallback(
     (selectedFiles: FileList | null) => {
@@ -78,22 +84,25 @@ function UploadDropZone({
   );
 
   const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+    if (!isFileDragEvent(e)) return;
     e.preventDefault();
     setIsDragging(true);
-  }, []);
+  }, [isFileDragEvent]);
 
   const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
+    if (!isFileDragEvent(e)) return;
     e.preventDefault();
     setIsDragging(false);
-  }, []);
+  }, [isFileDragEvent]);
 
   const handleDrop = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
+      if (!isFileDragEvent(e)) return;
       e.preventDefault();
       setIsDragging(false);
       handleFiles(e.dataTransfer.files);
     },
-    [handleFiles]
+    [handleFiles, isFileDragEvent]
   );
 
   const handleInputChange = useCallback(
@@ -110,11 +119,64 @@ function UploadDropZone({
     [files, onFilesSelect]
   );
 
+  const resetSortDragState = useCallback(() => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  }, []);
+
+  const reorderFiles = useCallback((fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+    if (fromIndex < 0 || toIndex < 0) return;
+    if (fromIndex >= files.length || toIndex >= files.length) return;
+
+    const nextFiles = [...files];
+    const [movedFile] = nextFiles.splice(fromIndex, 1);
+    nextFiles.splice(toIndex, 0, movedFile);
+    onFilesSelect(nextFiles);
+  }, [files, onFilesSelect]);
+
+  const handleItemDragStart = useCallback((e: DragEvent<HTMLDivElement>, index: number) => {
+    e.stopPropagation();
+    setDraggedIndex(index);
+    setDragOverIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+  }, []);
+
+  const handleItemDragOver = useCallback((e: DragEvent<HTMLDivElement>, index: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  }, []);
+
+  const handleItemDrop = useCallback((e: DragEvent<HTMLDivElement>, index: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const draggedFromTransfer = Number.parseInt(e.dataTransfer.getData('text/plain'), 10);
+    const sourceIndex = draggedIndex ?? draggedFromTransfer;
+    if (Number.isInteger(sourceIndex)) {
+      reorderFiles(sourceIndex, index);
+    }
+    resetSortDragState();
+  }, [draggedIndex, reorderFiles, resetSortDragState]);
+
+  const handleItemDragEnd = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    resetSortDragState();
+  }, [resetSortDragState]);
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
-        <span className="text-xs text-slate-500">{files.length} 张</span>
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          {files.length > 1 && (
+            <span className="text-primary-600">可拖动排序</span>
+          )}
+          <span>{files.length} 张</span>
+        </div>
       </div>
 
       <div
@@ -167,10 +229,17 @@ function UploadDropZone({
           <div className="space-y-2 max-h-[200px] overflow-y-auto">
             {files.map((file, index) => (
               <FilePreviewItem
-                key={`${file.name}-${index}`}
+                key={`${file.name}-${file.lastModified}-${file.size}`}
                 file={file}
                 index={index}
                 onRemove={removeFile}
+                draggable={files.length > 1}
+                isDragging={draggedIndex === index}
+                isDragOver={dragOverIndex === index && draggedIndex !== index}
+                onDragStart={handleItemDragStart}
+                onDragOver={handleItemDragOver}
+                onDrop={handleItemDrop}
+                onDragEnd={handleItemDragEnd}
               />
             ))}
           </div>
@@ -185,15 +254,49 @@ function FilePreviewItem({
   file,
   index,
   onRemove,
+  draggable,
+  isDragging,
+  isDragOver,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
 }: {
   file: File;
   index: number;
   onRemove: (index: number) => void;
+  draggable: boolean;
+  isDragging: boolean;
+  isDragOver: boolean;
+  onDragStart: (e: DragEvent<HTMLDivElement>, index: number) => void;
+  onDragOver: (e: DragEvent<HTMLDivElement>, index: number) => void;
+  onDrop: (e: DragEvent<HTMLDivElement>, index: number) => void;
+  onDragEnd: (e: DragEvent<HTMLDivElement>) => void;
 }) {
   const preview = useFilePreview(file);
 
   return (
-    <div className="flex items-center gap-3 bg-white rounded-lg p-2 border border-slate-200">
+    <div
+      draggable={draggable}
+      onDragStart={(e) => onDragStart(e, index)}
+      onDragOver={(e) => onDragOver(e, index)}
+      onDrop={(e) => onDrop(e, index)}
+      onDragEnd={onDragEnd}
+      className={`
+        flex items-center gap-3 bg-white rounded-lg p-2 border transition-all duration-150
+        ${isDragging ? 'opacity-60 border-primary-300' : 'border-slate-200'}
+        ${isDragOver ? 'border-primary-500 bg-primary-50' : ''}
+        ${draggable ? 'cursor-move' : 'cursor-default'}
+      `}
+      title={draggable ? '拖动调整顺序' : undefined}
+    >
+      {draggable && (
+        <div className="text-slate-400 shrink-0" aria-hidden="true">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9h8M8 15h8" />
+          </svg>
+        </div>
+      )}
       <div className="h-12 w-12 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 shrink-0">
         {preview ? (
           <img
