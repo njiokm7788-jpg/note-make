@@ -688,14 +688,25 @@ export function Sidebar({
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-medium text-slate-600">颜色</label>
-                      <input
-                        type="color"
-                        value={options.blockColor}
-                        onChange={(e) =>
-                          handleOptionChange({ ...options, blockColor: e.target.value })
-                        }
-                        className="w-5 h-5 rounded cursor-pointer border border-slate-300"
-                      />
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="color"
+                          value={options.blockColor}
+                          onChange={(e) =>
+                            handleOptionChange({ ...options, blockColor: e.target.value })
+                          }
+                          className="w-5 h-5 rounded cursor-pointer border border-slate-300"
+                        />
+                        <input
+                          type="text"
+                          value={options.blockColor}
+                          onChange={(e) =>
+                            handleOptionChange({ ...options, blockColor: e.target.value })
+                          }
+                          placeholder="#FFFF00"
+                          className="w-20 px-1.5 py-0.5 text-xs font-mono text-slate-700 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                        />
+                      </div>
                     </div>
                     <div className="flex gap-1">
                       {['#FFFF00', '#90EE90', '#FFB6C1', '#87CEEB', '#FFA94D', '#B197FC'].map((color) => (
